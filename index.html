@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSD_iAHU SMART CONTROL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0B141C;
+  --bg-grid: rgba(53,199,224,0.04);
+  --panel:#111E28;
+  --panel2:#16232E;
+  --elevated:#1C2C38;
+  --border:#233542;
+  --border-soft:#1A2830;
+  --text:#E7EEF3;
+  --text-dim:#93A6B5;
+  --text-faint:#5C7385;
+  --cyan:#35C7E0;
+  --cyan-dim:#1E7C8C;
+  --green:#4CD787;
+  --amber:#F0A93C;
+  --red:#EF5350;
+  --font-mono:'JetBrains Mono', monospace;
+  --font-sans:'IBM Plex Sans Thai','IBM Plex Sans', sans-serif;
+  --radius:6px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/100% 28px,
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 100%,
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font-sans);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--cyan-dim); color:#fff;}
+button{font-family:inherit;}
+input,select{font-family:var(--font-mono);}
+
+/* ---------- utility ---------- */
+.mono{font-family:var(--font-mono);}
+.hidden{display:none !important;}
+.dim{color:var(--text-dim);}
+.faint{color:var(--text-faint);}
+a{color:var(--cyan);}
+
+/* ---------- AUTH SCREEN ---------- */
+#authScreen{
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  padding:24px;
+}
+.auth-card{
+  width:100%; max-width:420px; background:var(--panel);
+  border:1px solid var(--border); border-radius:var(--radius);
+  padding:32px 28px; position:relative; overflow:hidden;
+}
+.auth-card::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--cyan), var(--green), var(--amber));
+}
+.brand{display:flex; align-items:center; gap:12px; margin-bottom:6px;}
+.brand-mark{
+  width:38px; height:38px; border:1px solid var(--cyan); border-radius:4px;
+  display:flex; align-items:center; justify-content:center; color:var(--cyan);
+  font-family:var(--font-mono); font-weight:700; font-size:13px; flex-shrink:0;
+  box-shadow:0 0 12px rgba(53,199,224,0.25) inset;
+}
+.brand-name{font-family:var(--font-mono); font-weight:700; font-size:17px; letter-spacing:0.5px;}
+.brand-sub{font-size:11px; color:var(--text-faint); font-family:var(--font-mono); letter-spacing:1.5px; margin-top:2px;}
+.auth-title{margin:22px 0 4px; font-size:15px; color:var(--text-dim); font-weight:600;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:11px; color:var(--text-faint); margin-bottom:5px; letter-spacing:0.5px; text-transform:uppercase; font-family:var(--font-mono);}
+.field input, .field select{
+  width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text);
+  padding:10px 12px; border-radius:4px; font-size:14px; outline:none; transition:border-color .15s;
+}
+.field input:focus, .field select:focus{border-color:var(--cyan);}
+.btn{
+  border:1px solid var(--cyan); background:rgba(53,199,224,0.08); color:var(--cyan);
+  padding:10px 16px; border-radius:4px; font-family:var(--font-mono); font-size:13px;
+  cursor:pointer; font-weight:600; letter-spacing:0.4px; transition:all .15s;
+}
+.btn:hover{background:rgba(53,199,224,0.18);}
+.btn-block{width:100%; padding:11px;}
+.btn-solid{background:var(--cyan); color:#04222b; border-color:var(--cyan);}
+.btn-solid:hover{background:#4fd4eb;}
+.btn-ghost{border-color:var(--border); background:transparent; color:var(--text-dim);}
+.btn-ghost:hover{border-color:var(--text-faint); color:var(--text);}
+.btn-danger{border-color:var(--red); color:var(--red); background:rgba(239,83,80,0.08);}
+.btn-danger:hover{background:rgba(239,83,80,0.18);}
+.btn-sm{padding:6px 10px; font-size:11px;}
+.auth-toggle{margin-top:18px; text-align:center; font-size:12.5px; color:var(--text-faint);}
+.auth-toggle span{color:var(--cyan); cursor:pointer; text-decoration:underline;}
+.auth-error{background:rgba(239,83,80,0.1); border:1px solid var(--red); color:#ffb4b1; font-size:12.5px; padding:9px 12px; border-radius:4px; margin-bottom:14px;}
+.auth-note{font-size:11px; color:var(--text-faint); margin-top:20px; line-height:1.6; border-top:1px solid var(--border-soft); padding-top:14px;}
+.auth-hint{background:var(--bg); border:1px dashed var(--border); border-radius:4px; padding:10px 12px; font-size:11.5px; color:var(--text-faint); margin-top:14px; font-family:var(--font-mono); line-height:1.7;}
+
+/* ---------- APP SHELL ---------- */
+#appShell{display:none; min-height:100vh; grid-template-columns:220px 1fr;}
+#appShell.active{display:grid;}
+.sidebar{
+  border-right:1px solid var(--border); background:var(--panel);
+  padding:18px 14px; display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
+}
+.sidebar .brand{padding:0 6px 18px; border-bottom:1px solid var(--border-soft); margin-bottom:14px;}
+.nav-item{
+  display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:5px;
+  color:var(--text-dim); cursor:pointer; font-size:13px; margin-bottom:3px; font-weight:500;
+  border:1px solid transparent; transition:all .12s;
+}
+.nav-item .dot{width:6px; height:6px; border-radius:50%; background:var(--text-faint); flex-shrink:0;}
+.nav-item:hover{background:var(--elevated); color:var(--text);}
+.nav-item.active{background:rgba(53,199,224,0.09); border-color:var(--cyan-dim); color:var(--cyan);}
+.nav-item.active .dot{background:var(--cyan); box-shadow:0 0 6px var(--cyan);}
+.nav-num{font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint); width:14px;}
+.sidebar-foot{margin-top:auto; padding-top:14px; border-top:1px solid var(--border-soft);}
+.user-chip{display:flex; align-items:center; gap:9px; padding:8px; border-radius:5px; background:var(--elevated); margin-bottom:8px;}
+.user-avatar{width:26px; height:26px; border-radius:50%; background:var(--cyan-dim); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; font-weight:700; color:#eafcff; flex-shrink:0;}
+.user-meta{line-height:1.3; overflow:hidden;}
+.user-name{font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.user-role{font-size:10px; color:var(--text-faint); font-family:var(--font-mono); text-transform:uppercase;}
+
+.main{padding:22px 28px 60px; overflow-y:auto; height:100vh;}
+.topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px;}
+.topbar h1{font-size:19px; margin:0; font-weight:700; letter-spacing:0.2px;}
+.topbar .subtitle{font-size:12px; color:var(--text-faint); margin-top:3px; font-family:var(--font-mono);}
+.status-pill{
+  display:inline-flex; align-items:center; gap:7px; padding:7px 13px; border-radius:20px;
+  font-family:var(--font-mono); font-size:12px; font-weight:600; border:1px solid var(--border);
+}
+.status-pill .blip{width:7px; height:7px; border-radius:50%;}
+
+/* panels / grid */
+.panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px;}
+.grid{display:grid; gap:16px;}
+.grid-cols-4{grid-template-columns:repeat(4,1fr);}
+.grid-cols-3{grid-template-columns:repeat(3,1fr);}
+.grid-cols-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1000px){.grid-cols-4{grid-template-columns:repeat(2,1fr);} .grid-cols-3{grid-template-columns:repeat(2,1fr);}}
+
+.metric{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; position:relative;}
+.metric .m-label{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.6px; font-family:var(--font-mono);}
+.metric .m-value{font-family:var(--font-mono); font-size:25px; font-weight:700; margin-top:6px; display:flex; align-items:baseline; gap:5px;}
+.metric .m-unit{font-size:12px; color:var(--text-faint); font-weight:500;}
+.metric .m-sub{font-size:11px; color:var(--text-faint); margin-top:4px;}
+.metric .m-bar{height:4px; background:var(--bg); border-radius:2px; margin-top:10px; overflow:hidden;}
+.metric .m-bar-fill{height:100%; background:var(--cyan); transition:width .6s ease;}
+
+.section-title{font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--text-faint); font-family:var(--font-mono); margin:26px 0 12px; display:flex; align-items:center; gap:10px;}
+.section-title::after{content:""; flex:1; height:1px; background:var(--border-soft);}
+
+/* mode badges */
+.mode-badges{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px;}
+.mode-badge{border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; background:var(--panel2); position:relative; overflow:hidden;}
+.mode-badge.active{border-color:var(--cyan); background:rgba(53,199,224,0.06);}
+.mode-badge.active::before{content:""; position:absolute; top:0; left:0; right:0; height:2px; background:var(--cyan); box-shadow:0 0 8px var(--cyan);}
+.mode-badge .mb-title{font-family:var(--font-mono); font-size:12.5px; font-weight:700;}
+.mode-badge .mb-desc{font-size:10.5px; color:var(--text-faint); margin-top:4px; line-height:1.5;}
+.mode-badge .mb-tag{position:absolute; top:10px; right:10px; font-family:var(--font-mono); font-size:9px; color:var(--cyan); letter-spacing:0.5px;}
+
+/* schematic */
+.schematic-wrap{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-top:16px;}
+.schematic-wrap svg{width:100%; height:auto; display:block;}
+.legend-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px 16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border-soft);}
+.legend-item{display:flex; align-items:flex-start; gap:8px; font-size:11px; color:var(--text-dim); line-height:1.5;}
+.legend-num{flex-shrink:0; width:17px; height:17px; border-radius:50%; background:#0B141C; border:1px solid var(--red); color:var(--red); font-family:var(--font-mono); font-size:9.5px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px;}
+@media(max-width:820px){.legend-grid{grid-template-columns:1fr 1fr;}}
+.tele-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px;}
+.tele-grid-header{display:flex; align-items:center; justify-content:space-between; margin-top:14px; padding-top:14px; border-top:1px solid var(--border-soft);}
+.tele-grid-title{font-size:10.5px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-faint); font-family:var(--font-mono);}
+.tele-item{background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:8px 10px;}
+.tele-label{font-size:9px; color:var(--text-faint); font-family:var(--font-mono); letter-spacing:0.4px;}
+.tele-val{font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--cyan); margin-top:3px; display:flex; align-items:baseline; gap:4px;}
+.tele-val .tele-unit{font-size:9.5px; color:var(--text-faint); font-weight:500;}
+.tele-input{background:transparent; border:none; color:var(--cyan); font-family:var(--font-mono); font-size:14px; font-weight:700; width:64px; padding:0; outline:none;}
+.tele-input:disabled{color:var(--cyan); opacity:1; -webkit-text-fill-color:var(--cyan);}
+.tele-input:not(:disabled){border-bottom:1px dashed var(--cyan); color:#fff;}
+.tele-sub{font-size:9.5px; color:var(--text-faint); font-family:var(--font-mono); margin-top:3px;}
+.diag-item{display:flex; gap:10px; padding:10px 12px; border-radius:6px; margin-bottom:8px; border:1px solid var(--border); background:var(--panel2);}
+.diag-item:last-child{margin-bottom:0;}
+.diag-item.ok{border-color:#1f6d47;}
+.diag-item.warn{border-color:#8a5f1c;}
+.diag-item.critical{border-color:#8a2f2c;}
+.diag-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0; margin-top:4px;}
+.diag-item.ok .diag-dot{background:var(--green);}
+.diag-item.warn .diag-dot{background:var(--amber);}
+.diag-item.critical .diag-dot{background:var(--red);}
+.diag-title{font-size:12.5px; font-weight:700; font-family:var(--font-mono);}
+.diag-item.ok .diag-title{color:var(--green);}
+.diag-item.warn .diag-title{color:var(--amber);}
+.diag-item.critical .diag-title{color:var(--red);}
+.diag-detail{font-size:11.5px; color:var(--text-dim); margin-top:3px; line-height:1.5;}
+@media(max-width:820px){.tele-grid{grid-template-columns:1fr 1fr;}}
+.duct-flow{stroke-dasharray:6 6; animation:flowmove 1s linear infinite;}
+@keyframes flowmove{to{stroke-dashoffset:-24;}}
+.readout-box{font-family:var(--font-mono);}
+.readout-box .rv{font-weight:700;}
+
+/* tables & forms */
+table{width:100%; border-collapse:collapse; font-size:12.5px;}
+th{text-align:left; font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-faint); padding:9px 10px; border-bottom:1px solid var(--border);}
+td{padding:10px; border-bottom:1px solid var(--border-soft);}
+tr:last-child td{border-bottom:none;}
+.tag{display:inline-block; padding:2px 8px; border-radius:10px; font-family:var(--font-mono); font-size:10.5px; font-weight:600; border:1px solid;}
+.tag-cyan{color:var(--cyan); border-color:var(--cyan-dim); background:rgba(53,199,224,0.08);}
+.tag-green{color:var(--green); border-color:#1f6d47; background:rgba(76,215,135,0.08);}
+.tag-amber{color:var(--amber); border-color:#8a5f1c; background:rgba(240,169,60,0.08);}
+.tag-red{color:var(--red); border-color:#8a2f2c; background:rgba(239,83,80,0.08);}
+.tag-grey{color:var(--text-faint); border-color:var(--border);}
+
+.param-card{background:var(--panel2); border:1px solid var(--border); border-radius:var(--radius); padding:16px;}
+.param-card h3{margin:0 0 3px; font-size:14px; font-family:var(--font-mono);}
+.param-card .pc-sub{font-size:11px; color:var(--text-faint); margin-bottom:14px;}
+.form-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;}
+.form-row label{font-size:12px; color:var(--text-dim);}
+.form-row input[type=number]{width:90px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 8px; border-radius:4px; text-align:right;}
+.toggle{position:relative; width:38px; height:20px; background:var(--bg); border:1px solid var(--border); border-radius:20px; cursor:pointer; flex-shrink:0;}
+.toggle .knob{position:absolute; top:1px; left:1px; width:16px; height:16px; border-radius:50%; background:var(--text-faint); transition:all .15s;}
+.toggle.on{background:rgba(76,215,135,0.15); border-color:var(--green);}
+.toggle.on .knob{left:19px; background:var(--green);}
+
+.pill-btn{display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:5px; border:1px solid var(--border); background:var(--panel2); color:var(--text-dim); font-size:12px; cursor:pointer; font-family:var(--font-mono);}
+.pill-btn:hover{border-color:var(--text-faint); color:var(--text);}
+.pill-btn.active{border-color:var(--cyan); color:var(--cyan); background:rgba(53,199,224,0.08);}
+
+.day-chip{display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:5px; border:1px solid var(--border); font-size:11px; font-family:var(--font-mono); cursor:pointer; color:var(--text-faint); margin-right:4px;}
+.day-chip.on{border-color:var(--cyan); color:var(--cyan); background:rgba(53,199,224,0.1);}
+
+.chart-box{background:var(--panel2); border:1px solid var(--border); border-radius:var(--radius); padding:14px;}
+.chart-box canvas{max-height:260px;}
+
+.empty-state{text-align:center; padding:30px 10px; color:var(--text-faint); font-size:12.5px;}
+.small-note{font-size:11px; color:var(--text-faint); margin-top:8px; line-height:1.6;}
+
+/* schedule form modal-ish inline */
+.inline-add{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; background:var(--panel2); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:16px;}
+.inline-add .field{margin-bottom:0; min-width:130px;}
+.icon-btn{background:transparent; border:1px solid var(--border); color:var(--text-faint); width:28px; height:28px; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;}
+.icon-btn:hover{border-color:var(--red); color:var(--red);}
+
+.top-actions{display:flex; gap:8px; align-items:center;}
+.toast{position:fixed; bottom:20px; right:20px; background:var(--elevated); border:1px solid var(--cyan-dim); color:var(--text); padding:10px 16px; border-radius:6px; font-size:12.5px; font-family:var(--font-mono); z-index:999; opacity:0; transform:translateY(8px); transition:all .25s;}
+.toast.show{opacity:1; transform:translateY(0);}
+
+.admin-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
+@media(max-width:1000px){.admin-grid{grid-template-columns:1fr;}}
+.role-select{background:var(--bg); border:1px solid var(--border); color:var(--text); padding:5px 8px; border-radius:4px; font-size:11.5px;}
+.calc-setting{margin-top:16px; padding-top:14px; border-top:1px dashed var(--border-soft);}
+.calc-setting summary{cursor:pointer; font-family:var(--font-mono); font-size:11px; color:var(--cyan); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:10px; outline:none;}
+.calc-setting[open] summary{margin-bottom:12px;}
+.calc-setting .form-row label{font-size:11px;}
+
+@media(max-width:820px){
+  #appShell.active{grid-template-columns:1fr;}
+  .sidebar{position:relative; height:auto; flex-direction:row; overflow-x:auto; align-items:center; padding:10px;}
+  .sidebar .brand{display:none;}
+  .sidebar-foot{display:none;}
+  .nav-item{white-space:nowrap;}
+  .main{height:auto;}
+  .grid-cols-4, .grid-cols-3, .grid-cols-2{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="brand">
+      <div class="brand-mark">AHU</div>
+      <div>
+        <div class="brand-name">PSD_iAHU <span style="color:var(--cyan)">SMART CONTROL</span></div>
+        <div class="brand-sub">BITEC BURI &middot; AHU-01 &middot; 10,000 CFM</div>
+      </div>
+    </div>
+
+    <div id="loginPane">
+      <div class="auth-title">เข้าสู่ระบบ (Login)</div>
+      <div id="loginError" class="auth-error hidden"></div>
+      <div class="field"><label>Username</label><input id="loginUser" type="text" placeholder="เช่น admin" autocomplete="username"></div>
+      <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="btn btn-solid btn-block" onclick="doLogin()">เข้าสู่ระบบ</button>
+      <div class="auth-toggle">ยังไม่มีบัญชี? <span onclick="showRegister()">สมัครสมาชิกผู้ใช้งานใหม่</span></div>
+    </div>
+
+    <div id="registerPane" class="hidden">
+      <div class="auth-title">สมัครผู้ใช้งานใหม่ (Register)</div>
+      <div id="regError" class="auth-error hidden"></div>
+      <div class="field"><label>Username</label><input id="regUser" type="text" placeholder="ตั้งชื่อผู้ใช้"></div>
+      <div class="field"><label>Password</label><input id="regPass" type="password" placeholder="อย่างน้อย 4 ตัวอักษร"></div>
+      <div class="field"><label>ชื่อ-สกุล / ตำแหน่ง</label><input id="regFullname" type="text" placeholder="เช่น ช่างเทคนิค อาคาร BITEC"></div>
+      <button class="btn btn-solid btn-block" onclick="doRegister()">สร้างบัญชีผู้ใช้งาน</button>
+      <div class="auth-toggle">มีบัญชีอยู่แล้ว? <span onclick="showLogin()">กลับไปเข้าสู่ระบบ</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="appShell">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">AHU</div>
+      <div>
+        <div class="brand-name" style="font-size:14px;">PSD_iAHU</div>
+        <div class="brand-sub" style="font-size:9.5px;">SMART CONTROL</div>
+      </div>
+    </div>
+
+    <div class="nav-item active" data-screen="dashboard" onclick="switchScreen('dashboard')"><span class="nav-num">01</span><span class="dot"></span>Dashboard</div>
+    <div class="nav-item" data-screen="params" onclick="switchScreen('params')"><span class="nav-num">02</span><span class="dot"></span>Mode Parameters</div>
+    <div class="nav-item" data-screen="schedule" onclick="switchScreen('schedule')"><span class="nav-num">03</span><span class="dot"></span>Schedule</div>
+    <div class="nav-item" data-screen="reports" onclick="switchScreen('reports')"><span class="nav-num">04</span><span class="dot"></span>Reports &amp; Energy</div>
+    <div class="nav-item hidden" id="navAdmin" data-screen="admin" onclick="switchScreen('admin')"><span class="nav-num">05</span><span class="dot"></span>Admin</div>
+
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <div class="user-meta">
+          <div class="user-name" id="userNameLbl">-</div>
+          <div class="user-role" id="userRoleLbl">-</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-block btn-sm" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ============ SCREEN 1: DASHBOARD ============ -->
+    <section id="screen-dashboard">
+      <div class="topbar">
+        <div>
+          <h1>ภาพรวมระบบ &middot; AHU-01</h1>
+          <div class="subtitle">BITEC BURI &nbsp;/&nbsp; งานติดตั้งเครื่องปรับอากาศ (AHU) &nbsp;/&nbsp; อ้างอิงแบบ AC-D-01</div>
+        </div>
+        <div class="status-pill" id="topStatusPill" class="mono"><span class="blip"></span><span id="topStatusText">-</span></div>
+      </div>
+
+      <div class="grid grid-cols-4">
+        <div class="metric">
+          <div class="m-label">Supply Airflow</div>
+          <div class="m-value"><span id="mAirflow">0</span><span class="m-unit">CFM</span></div>
+          <div class="m-sub">Design max 10,000 CFM &middot; EC Fan</div>
+          <div class="m-bar"><div class="m-bar-fill" id="mAirflowBar" style="width:0%"></div></div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Room Temperature / Humidity</div>
+          <div class="m-value"><span id="mRoomTemp">0.0</span><span class="m-unit">&deg;C</span><span style="color:var(--text-faint); font-size:16px; margin:0 2px;">/</span><span id="mRoomHumi" style="color:var(--cyan)">0</span><span class="m-unit">%RH</span></div>
+          <div class="m-sub">Setpoint <span id="mRoomTarget">25.0</span>&deg;C &plusmn; <span id="mRoomTol">2.0</span>&deg;C &middot; Humi setpoint <span id="mHumiTarget">60</span>%RH</div>
+          <div id="mOverloadWarn" class="hidden" style="color:var(--red); font-size:10.5px; font-family:var(--font-mono); margin-top:5px;">&#9888; โหลดความร้อนเกินกำลังทำความเย็น ณ ขณะนี้ &mdash; ตรวจสอบ Room Load Inputs</div>
+          <div class="m-bar"><div class="m-bar-fill" id="mRoomBar" style="width:0%; background:var(--amber);"></div></div>
+        </div>
+        <div class="metric">
+          <div class="m-label">CW-1 Chilled Water (32.34 kW)</div>
+          <div class="m-value"><span id="mCw1" style="color:var(--text-faint)">OFF</span></div>
+          <div class="m-sub">Return &rarr; Setpoint <span id="mCw1Sp">14.5</span>&deg;C</div>
+          <div class="m-bar"><div class="m-bar-fill" id="mCw1Bar" style="width:0%; background:var(--green);"></div></div>
+        </div>
+        <div class="metric">
+          <div class="m-label">CW-2 Chilled Water (51.88 kW)</div>
+          <div class="m-value"><span id="mCw2" style="color:var(--text-faint)">OFF</span></div>
+          <div class="m-sub">Return &rarr; Setpoint <span id="mCw2Sp">14.5</span>&deg;C</div>
+          <div class="m-bar"><div class="m-bar-fill" id="mCw2Bar" style="width:0%; background:var(--green);"></div></div>
+        </div>
+      </div>
+
+      <div class="section-title">โหมดการทำงาน (Operating Mode)</div>
+      <div class="mode-badges" id="modeBadges"></div>
+
+      <div class="section-title">แหล่งควบคุม (Control Source)</div>
+      <div class="panel" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="pill-btn" id="srcManualBtn" onclick="setControlSource('manual')">Manual Override</span>
+          <span class="pill-btn" id="srcScheduleBtn" onclick="setControlSource('schedule')">Follow Schedule</span>
+        </div>
+        <div id="manualModeButtons" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="pill-btn" data-m="precool" onclick="setManualMode('precool')">1&middot;Pre-Cool</span>
+          <span class="pill-btn" data-m="operation" onclick="setManualMode('operation')">2&middot;Operation</span>
+          <span class="pill-btn" data-m="supercool" onclick="setManualMode('supercool')">3&middot;Super Cool</span>
+          <span class="pill-btn" data-m="auto" onclick="setManualMode('auto')">4&middot;Auto</span>
+        </div>
+      </div>
+      <div class="small-note" id="controlSourceNote"></div>
+
+      <div class="section-title">Air Flow Schematic &middot; AHU-01</div>
+      <div class="schematic-wrap">
+        <div id="schematicHost"></div>
+        <div class="legend-grid">
+          <div class="legend-item"><span class="legend-num">6</span>EC-Fan (Motor IE5) 10,000 CFM</div>
+          <div class="legend-item"><span class="legend-num">7</span>Cooling Coil-2 (6R) 93.28/51.88 kW</div>
+          <div class="legend-item"><span class="legend-num">8</span>Cooling Coil-1 (3R) 50.26/32.34 kW</div>
+          <div class="legend-item"><span class="legend-num">9</span>Pre-filter G4 (EN779) MERV.8</div>
+          <div class="legend-item"><span class="legend-num">10</span>Supply air duct w/ insulation</div>
+          <div class="legend-item"><span class="legend-num">11</span>Return air duct w/ insulation</div>
+          <div class="legend-item"><span class="legend-num">12</span>Fresh air duct w/ volume damper</div>
+          <div class="legend-item"><span class="legend-num">13</span>Condensate drain pipe w/ P-trap</div>
+        </div>
+        <div class="tele-grid-header">
+          <div class="tele-grid-title">A1&ndash;A8 MACHINE PARAMETERS</div>
+          <div style="display:flex; gap:6px;">
+            <span class="pill-btn" id="teleAutoBtn" onclick="setTelemetrySource('auto')">Auto Input</span>
+            <span class="pill-btn" id="teleManualBtn" onclick="setTelemetrySource('manual')">Manual Input</span>
+            <span class="pill-btn" style="border-color:var(--green); color:var(--green);" onclick="testSteadyState()">&#9654; ทดสอบผลลัพธ์</span>
+          </div>
+        </div>
+        <div class="tele-grid-title" style="margin-top:4px;">CW-1 &middot; CHILLED WATER (separate CHS/CHR/Flow sensors)</div>
+        <div class="tele-grid" style="grid-template-columns:repeat(4,1fr); margin-top:8px;">
+          <div class="tele-item"><div class="tele-label">A1 &middot; CHS ENTERING</div><div class="tele-val"><input type="number" step="0.1" id="teleA1cw1" class="tele-input" disabled onchange="setTelemetryValue('a1_cw1', this.value)"><span class="tele-unit">&deg;F</span></div><div class="tele-sub" id="teleA1cw1c">&asymp; -- &deg;C</div></div>
+          <div class="tele-item"><div class="tele-label">A2 &middot; CHR LEAVING</div><div class="tele-val"><input type="number" step="0.1" id="teleA2cw1" class="tele-input" disabled onchange="setTelemetryValue('a2_cw1', this.value)"><span class="tele-unit">&deg;F</span></div><div class="tele-sub" id="teleA2cw1c">&asymp; -- &deg;C</div></div>
+          <div class="tele-item"><div class="tele-label">A6 &middot; WATER FLOW</div><div class="tele-val"><input type="number" step="0.1" id="teleA6cw1" class="tele-input" disabled onchange="setTelemetryValue('a6_cw1', this.value)"><span class="tele-unit">GPM</span></div></div>
+          <div class="tele-item" style="border-color:var(--cyan-dim);"><div class="tele-label">&rArr; TR CW-1 (Design <span id="trDesignCw1">--</span> TR)</div><div class="tele-val"><span id="trCw1Out" style="color:var(--text-dim);">--</span><span class="tele-unit">TR</span></div></div>
+        </div>
+
+        <div class="tele-grid-title" style="margin-top:14px;">CW-2 &middot; CHILLED WATER (separate CHS/CHR/Flow sensors)</div>
+        <div class="tele-grid" style="grid-template-columns:repeat(4,1fr); margin-top:8px;">
+          <div class="tele-item"><div class="tele-label">A1 &middot; CHS ENTERING</div><div class="tele-val"><input type="number" step="0.1" id="teleA1cw2" class="tele-input" disabled onchange="setTelemetryValue('a1_cw2', this.value)"><span class="tele-unit">&deg;F</span></div><div class="tele-sub" id="teleA1cw2c">&asymp; -- &deg;C</div></div>
+          <div class="tele-item"><div class="tele-label">A2 &middot; CHR LEAVING</div><div class="tele-val"><input type="number" step="0.1" id="teleA2cw2" class="tele-input" disabled onchange="setTelemetryValue('a2_cw2', this.value)"><span class="tele-unit">&deg;F</span></div><div class="tele-sub" id="teleA2cw2c">&asymp; -- &deg;C</div></div>
+          <div class="tele-item"><div class="tele-label">A6 &middot; WATER FLOW</div><div class="tele-val"><input type="number" step="0.1" id="teleA6cw2" class="tele-input" disabled onchange="setTelemetryValue('a6_cw2', this.value)"><span class="tele-unit">GPM</span></div></div>
+          <div class="tele-item" style="border-color:var(--cyan-dim);"><div class="tele-label">&rArr; TR CW-2 (Design <span id="trDesignCw2">--</span> TR)</div><div class="tele-val"><span id="trCw2Out" style="color:var(--text-dim);">--</span><span class="tele-unit">TR</span></div></div>
+        </div>
+        <div class="small-note" style="margin-top:8px;">TR = &Delta;T(&deg;F, CHR&minus;CHS) &times; Water Flow(GPM) &divide; 24 &middot; ปรับค่า Design TR ได้ที่ Admin</div>
+
+        <div class="tele-grid-title" style="margin-top:14px;">SHARED DUCT / ROOM PARAMETERS</div>
+        <div class="tele-grid" style="margin-top:8px;">
+          <div class="tele-item"><div class="tele-label">A3 &middot; PRESSURE ENT.</div><div class="tele-val"><input type="number" step="0.01" id="teleA3" class="tele-input" disabled onchange="setTelemetryValue('a3', this.value)"><span class="tele-unit">Psig</span></div></div>
+          <div class="tele-item"><div class="tele-label">A4 &middot; PRESSURE LVG.</div><div class="tele-val"><input type="number" step="0.01" id="teleA4" class="tele-input" disabled onchange="setTelemetryValue('a4', this.value)"><span class="tele-unit">Psig</span></div></div>
+          <div class="tele-item"><div class="tele-label">A5 &middot; AIR FLOW</div><div class="tele-val"><input type="number" step="10" id="teleA5" class="tele-input" disabled onchange="setTelemetryValue('a5', this.value)"><span class="tele-unit">CFM</span></div></div>
+          <div class="tele-item"><div class="tele-label">A7 &middot; RETURN TEMP <span class="dim" id="teleA7expected"></span></div><div class="tele-val"><input type="number" step="0.1" id="teleA7" class="tele-input" disabled onchange="setTelemetryValue('a7', this.value)"><span class="tele-unit">&deg;C</span></div><div class="tele-sub" id="teleA7f">&asymp; -- &deg;F</div></div>
+          <div class="tele-item"><div class="tele-label">A8 &middot; FRESH AIR TEMP</div><div class="tele-val"><input type="number" step="0.1" id="teleA8" class="tele-input" disabled onchange="setTelemetryValue('a8', this.value)"><span class="tele-unit">&deg;C</span></div><div class="tele-sub" id="teleA8f">&asymp; -- &deg;F</div></div>
+        </div>
+        <div class="small-note" id="teleNote" style="margin-top:8px;">โหมด Auto: ระบบคำนวณ A1&ndash;A8 จากสถานะพลานท์จริงทุก tick</div>
+        <div id="testResultBox" class="hidden" style="margin-top:10px; background:var(--panel2); border:1px solid var(--green); border-radius:6px; padding:12px 14px;">
+          <div style="font-size:10px; color:var(--text-faint); font-family:var(--font-mono); letter-spacing:0.5px; margin-bottom:6px;">ผลลัพธ์ที่สภาวะคงตัว (STEADY-STATE PREVIEW) &middot; ไม่กระทบค่าจริงที่กำลังรันอยู่</div>
+          <div id="testResultText" class="mono" style="font-size:13px; line-height:1.8;"></div>
+        </div>
+
+        <div class="tele-grid-header" style="margin-top:18px;">
+          <div class="tele-grid-title">ROOM LOAD CALCULATION INPUTS</div>
+          <span class="pill-btn" onclick="resetRoomLoadDefaults()">&#8635; รีเซ็ตเป็นค่าเริ่มต้น</span>
+        </div>
+        <div class="tele-grid" id="loadGrid">
+          <div class="tele-item"><div class="tele-label">ROOM FLOOR AREA</div><div class="tele-val"><input type="number" step="10" id="loadArea" class="tele-input" onchange="updateRoomLoad()"><span class="tele-unit">m&sup2;</span></div></div>
+          <div class="tele-item"><div class="tele-label">OCCUPANCY COUNT</div><div class="tele-val"><input type="number" step="5" id="loadOccupancy" class="tele-input" onchange="updateRoomLoad()"><span class="tele-unit">persons</span></div></div>
+          <div class="tele-item"><div class="tele-label">SENSIBLE HEAT / PERSON</div><div class="tele-val"><input type="number" step="1" id="loadPersonSens" class="tele-input" onchange="updateRoomLoad()"><span class="tele-unit">W</span></div></div>
+          <div class="tele-item"><div class="tele-label">LATENT HEAT / PERSON</div><div class="tele-val"><input type="number" step="1" id="loadPersonLat" class="tele-input" onchange="updateRoomLoad()"><span class="tele-unit">W</span></div></div>
+          <div class="tele-item"><div class="tele-label">LIGHTING DENSITY</div><div class="tele-val"><input type="number" step="1" id="loadLighting" class="tele-input" onchange="updateRoomLoad()"><span class="tele-unit">W/m&sup2;</span></div></div>
+          <div class="tele-item"><div class="tele-label">ENVELOPE / SOLAR GAIN</div><div class="tele-val"><input type="number" step="1" id="loadEnvelope" class="tele-input" onchange="updateRoomLoad()"><span class="tele-unit">W/m&sup2;</span></div></div>
+          <div class="tele-item" style="border-color:var(--cyan-dim);"><div class="tele-label">&rArr; Q SENSIBLE (COMPUTED)</div><div class="tele-val"><span id="loadQSensOut">--</span><span class="tele-unit">kW</span></div></div>
+          <div class="tele-item" style="border-color:var(--cyan-dim);"><div class="tele-label">&rArr; Q LATENT (COMPUTED)</div><div class="tele-val"><span id="loadQLatOut">--</span><span class="tele-unit">kW</span></div></div>
+        </div>
+        <div class="small-note" style="margin-top:8px;">Q<sub>sensible</sub> = (Occupancy&times;W<sub>sens</sub> + Area&times;Lighting + Area&times;Envelope) &divide; 1000 &middot; Q<sub>latent</sub> = (Occupancy&times;W<sub>lat</sub>) &divide; 1000 &middot; ค่าที่คำนวณได้จะแทนที่ Q Sensible/Latent Gain ใน Physics Engine โดยอัตโนมัติทุกครั้งที่แก้ไข</div>
+        <div id="loadWarning" class="small-note hidden" style="color:var(--red); margin-top:6px;"></div>
+      </div>
+
+      <div class="section-title">DIAGNOSTICS &middot; วิเคราะห์สาเหตุ (Root Cause Analysis)</div>
+      <div class="panel">
+        <div class="small-note" style="margin-bottom:10px;">วิเคราะห์อัตโนมัติทุก tick จาก TR แต่ละคอยล์เทียบ Design, Air Flow, Pressure Drop, และ A7 Return Temp เทียบกับ Setpoint+Load — ใช้แทนการเดาสาเหตุหน้างาน</div>
+        <div id="diagnosticsList"></div>
+      </div>
+
+    </section>
+
+    <!-- ============ SCREEN 2: PARAMETERS ============ -->
+    <section id="screen-params" class="hidden">
+      <div class="topbar">
+        <div><h1>ตั้งค่าพารามิเตอร์แต่ละโหมด</h1><div class="subtitle">Mode Parameters &middot; ค่าที่ตั้งจะมีผลต่อการจำลองการทำงานทันที</div></div>
+        <button class="btn btn-solid" onclick="saveAllParams()">บันทึกพารามิเตอร์ทั้งหมด</button>
+      </div>
+      <div class="grid grid-cols-2" id="paramCards"></div>
+    </section>
+
+    <!-- ============ SCREEN 3: SCHEDULE ============ -->
+    <section id="screen-schedule" class="hidden">
+      <div class="topbar">
+        <div><h1>ตารางเวลาทำงาน (Schedule)</h1><div class="subtitle">กำหนดเวลาเปิด-ปิดของแต่ละโหมดตามวันในสัปดาห์</div></div>
+      </div>
+
+      <div class="inline-add">
+        <div class="field"><label>โหมด</label>
+          <select id="schMode">
+            <option value="precool">Pre-Cool (Standby)</option>
+            <option value="operation">Operation</option>
+            <option value="supercool">Super Cool</option>
+            <option value="auto">Auto</option>
+          </select>
+        </div>
+        <div class="field"><label>เวลาเริ่ม</label><input id="schStart" type="time" value="07:00"></div>
+        <div class="field"><label>เวลาสิ้นสุด</label><input id="schEnd" type="time" value="09:00"></div>
+        <div class="field">
+          <label>วัน</label>
+          <div id="dayPicker"></div>
+        </div>
+        <button class="btn btn-solid" onclick="addScheduleEntry()">+ เพิ่มรายการ</button>
+      </div>
+
+      <div class="panel">
+        <table>
+          <thead><tr><th>โหมด</th><th>เวลา</th><th>วัน</th><th>สถานะ</th><th></th></tr></thead>
+          <tbody id="scheduleTable"></tbody>
+        </table>
+        <div id="scheduleEmpty" class="empty-state hidden">ยังไม่มีรายการตารางเวลา &mdash; เพิ่มรายการด้านบนเพื่อให้ระบบทำงานอัตโนมัติตามเวลา</div>
+      </div>
+      <div class="small-note">ระบบจะทำงานตามตารางเวลาได้ก็ต่อเมื่อเลือกแหล่งควบคุมเป็น <b>Follow Schedule</b> ที่หน้า Dashboard เท่านั้น หากไม่มีรายการใดตรงกับเวลาปัจจุบัน ระบบจะเข้าสู่โหมด Pre-Cool (Standby) โดยอัตโนมัติ</div>
+    </section>
+
+    <!-- ============ SCREEN 4: REPORTS ============ -->
+    <section id="screen-reports" class="hidden">
+      <div class="topbar">
+        <div><h1>สรุปการใช้งานและพลังงาน</h1><div class="subtitle">Reports &amp; Energy Summary &middot; ประมวลผลจากข้อมูลจำลอง</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="resetRuntime()">รีเซ็ตข้อมูลสถิติ</button>
+      </div>
+
+      <div class="grid grid-cols-4">
+        <div class="metric"><div class="m-label">พลังงานสะสม (ประมาณการ)</div><div class="m-value"><span id="rEnergyTotal">0.00</span><span class="m-unit">kWh</span></div></div>
+        <div class="metric"><div class="m-label">ชั่วโมงทำงานรวม</div><div class="m-value"><span id="rHoursTotal">0.0</span><span class="m-unit">hr</span></div></div>
+        <div class="metric"><div class="m-label">จำนวนครั้งสลับโหมด</div><div class="m-value"><span id="rSwitchCount">0</span><span class="m-unit">ครั้ง</span></div></div>
+        <div class="metric"><div class="m-label">โหมดที่ใช้งานบ่อยที่สุด</div><div class="m-value" style="font-size:16px;"><span id="rTopMode">-</span></div></div>
+      </div>
+
+      <div class="section-title">ชั่วโมงการทำงานแยกตามโหมด</div>
+      <div class="chart-box"><canvas id="chartModeHours"></canvas></div>
+
+      <div class="section-title">พลังงานใช้งานรายวัน (kWh)</div>
+      <div class="chart-box"><canvas id="chartEnergyDaily"></canvas></div>
+
+      <div class="section-title">บันทึกเหตุการณ์ล่าสุด (Event Log)</div>
+      <div class="panel"><table><thead><tr><th>เวลา</th><th>เหตุการณ์</th><th>โหมด</th></tr></thead><tbody id="eventLogTable"></tbody></table>
+        <div id="eventLogEmpty" class="empty-state hidden">ยังไม่มีบันทึกเหตุการณ์</div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 5: ADMIN ============ -->
+    <section id="screen-admin" class="hidden">
+      <div class="topbar">
+        <div><h1>ผู้ดูแลระบบ (Admin)</h1><div class="subtitle">จัดการผู้ใช้งานและการตั้งค่าระบบส่วนกลาง</div></div>
+      </div>
+      <div class="admin-grid">
+        <div class="panel">
+          <h3 style="margin-top:0; font-size:13px; font-family:var(--font-mono); color:var(--text-dim);">รายชื่อผู้ใช้งาน</h3>
+          <table><thead><tr><th>Username</th><th>ชื่อ-ตำแหน่ง</th><th>สิทธิ์</th><th></th></tr></thead><tbody id="userTable"></tbody></table>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0; font-size:13px; font-family:var(--font-mono); color:var(--text-dim);">ตั้งค่าระบบส่วนกลาง</h3>
+          <div class="field"><label>ชื่อโครงการ</label><input id="admProject" type="text" value="BITEC BURI"></div>
+          <div class="field"><label>อุณหภูมิห้องเป้าหมาย (Room Setpoint)</label><input id="admRoomTarget" type="number" step="0.1" value="25"></div>
+          <div class="field"><label>ช่วงเผื่อ (Tolerance ±)</label><input id="admRoomTol" type="number" step="0.1" value="2"></div>
+          <div class="field"><label>ค่าตั้งความชื้นสัมพัทธ์ (Humidity Setpoint %RH)</label><input id="admHumiditySetpoint" type="number" step="1" value="60"></div>
+          <div class="field"><label>อัตราจำลองเวลา (วินาทีจริง = กี่นาทีจำลอง)</label><input id="admSimRate" type="number" step="1" value="5"></div>
+          <button class="btn btn-solid btn-block" onclick="saveAdminConfig()">บันทึกการตั้งค่าระบบ</button>
+          <div class="small-note">เมื่อความชื้นเกินค่าตั้งนี้ ระบบจะลดความเร็วพัดลม (VSD) ลงเสริมเท่านั้น — การเปิด/ปิดคอยล์ยังยึดตามตารางของแต่ละโหมดเสมอ ไม่มีข้อยกเว้น</div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:22px;">Physics Engine Settings (HVAC Heat/Moisture Balance)</div>
+      <div class="panel">
+        <div class="small-note" style="margin-bottom:14px;">พารามิเตอร์เหล่านี้ป้อนเข้าสมการ sensible/latent heat balance และโมเดลคอยล์ (ADP + Bypass Factor) ที่คำนวณ Room Temp / Room Humidity จริงทุก tick จากค่า A1&ndash;A8</div>
+        <div class="grid grid-cols-4">
+          <div class="field"><label>Room Sensible Heat Gain (kW) &middot; คำนวณจาก Room Load Inputs</label><input id="admQSens" type="number" step="0.5" value="15" disabled></div>
+          <div class="field"><label>Room Latent Heat Gain (kW) &middot; คำนวณจาก Room Load Inputs</label><input id="admQLat" type="number" step="0.5" value="6" disabled></div>
+          <div class="field"><label>Room Thermal Mass (kWh/&deg;C)</label><input id="admCRoom" type="number" step="0.5" value="8"></div>
+          <div class="field"><label>Room Dry-Air Mass (kg)</label><input id="admAirMass" type="number" step="50" value="3600"></div>
+          <div class="field"><label>Outdoor Air Fraction (%)</label><input id="admOaFrac" type="number" step="1" value="15"></div>
+          <div class="field"><label>Fresh Air RH assumed (%)</label><input id="admFreshRH" type="number" step="1" value="75"></div>
+          <div class="field"><label>Coil Bypass Factor — CW-1 (3-row)</label><input id="admBfCw1" type="number" step="0.01" value="0.18"></div>
+          <div class="field"><label>Coil Bypass Factor — CW-2 (6-row)</label><input id="admBfCw2" type="number" step="0.01" value="0.08"></div>
+          <div class="field"><label>Design TR &middot; CW-1</label><input id="admDesignTRcw1" type="number" step="0.1" value="9.2"></div>
+          <div class="field"><label>Design TR &middot; CW-2</label><input id="admDesignTRcw2" type="number" step="0.1" value="14.8"></div>
+          <div class="field"><label>Return Air Load Rise (&deg;C) &middot; สำหรับเทียบ A7</label><input id="admReturnRise" type="number" step="0.5" value="4"></div>
+        </div>
+        <button class="btn btn-solid" style="margin-top:14px;" onclick="saveAdminConfig()">บันทึกค่า Physics Engine</button>
+        <div class="small-note" style="margin-top:10px;">สูตรที่ใช้: Q<sub>sensible</sub>(kW) = 1.2 &times; m&sup3;/s &times; &Delta;T(&deg;C) &middot; Q<sub>latent</sub>(kW) = 2501 &times; kg/s &times; &Delta;w &middot; คอยล์ใช้โมเดล ADP + Bypass Factor (ADP &asymp; CHS Entering +1&deg;C) &middot; TR = &Delta;T(&deg;F) &times; GPM &divide; 24</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= STORAGE HELPERS ================= */
+async function sGet(key, fallback){
+  try{
+    const r = await window.storage.get(key, true);
+    return r ? JSON.parse(r.value) : fallback;
+  }catch(e){ return fallback; }
+}
+async function sSet(key, value){
+  try{ await window.storage.set(key, JSON.stringify(value), true); }catch(e){ console.error('storage set failed', key, e); }
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ================= DEFAULT DATA ================= */
+function defaultParams(){
+  return {
+    precool:  { label:'Pre-Cool Mode', cw1Setpoint:14.5, cw2Setpoint:null, cw1:true, cw2:false, fan:true,
+                roomMin:24, roomMax:25, humiMin:65, humiMax:75, fanMin:50, fanMax:60 },
+    operation:{ label:'Operation Mode', cw1Setpoint:null, cw2Setpoint:14.5, cw1:false, cw2:true, fan:true,
+                roomMin:21, roomMax:23, humiMin:60, humiMax:70, fanMin:70, fanMax:80 },
+    supercool:{ label:'Super Cool Mode', cw1Setpoint:14.5, cw2Setpoint:14.5, cw1:true, cw2:true, fan:true,
+                roomMin:19, roomMax:20, humiMin:60, humiMax:70, fanMin:80, fanMax:90 },
+    auto:     { label:'Auto Mode', keepLevel:14.5, targetTemp:25, tolerance:2, opThreshold:0.5, scThreshold:3.0, fan:true,
+                roomMin:22, roomMax:24, humiMin:60, humiMax:70, fanMin:50, fanMax:80 }
+  };
+}
+function defaultRuntime(){
+  return {
+    modeSeconds:{precool:0, operation:0, supercool:0, auto:0},
+    energyKWhTotal:0,
+    energyDaily:{},
+    modeSwitchCount:0,
+    events:[],
+    controlSource:'manual',
+    manualMode:'precool',
+    admin:{project:'BITEC BURI', roomTarget:25, roomTol:2, simRate:5, humiditySetpoint:60,
+           qSensibleGain:15, qLatentGain:6, roomThermalMass:8, roomAirMass:3600,
+           oaFraction:15, bfCW1:0.18, bfCW2:0.08, freshAirRH:75,
+           designTRcw1: Math.round((32.34/3.517)*10)/10, designTRcw2: Math.round((51.88/3.517)*10)/10,
+           returnLoadRise:4},
+    telemetryManual:false,
+    roomLoad:{area:500, occupancy:150, personSens:75, personLat:55, lighting:12, envelope:25},
+    regressionSamples:{precool:[], operation:[], supercool:[], auto:[]},
+    regression:{
+      precool:{coefTemp:null, coefHumi:null, r2Temp:0, r2Humi:0, n:0},
+      operation:{coefTemp:null, coefHumi:null, r2Temp:0, r2Humi:0, n:0},
+      supercool:{coefTemp:null, coefHumi:null, r2Temp:0, r2Humi:0, n:0},
+      auto:{coefTemp:null, coefHumi:null, r2Temp:0, r2Humi:0, n:0}
+    }
+  };
+}
+
+/* ================= REGRESSION ENGINE (A1-A8 -> Room Temp / Room Humidity) ================= */
+const A_KEYS = ['a1','a2','a3','a4','a5','a6','a7','a8'];
+function solveLinearSystem(A,b){
+  const n=b.length;
+  const M=A.map((row,i)=>[...row, b[i]]);
+  for(let col=0; col<n; col++){
+    let maxRow=col;
+    for(let r=col+1;r<n;r++) if(Math.abs(M[r][col])>Math.abs(M[maxRow][col])) maxRow=r;
+    [M[col],M[maxRow]]=[M[maxRow],M[col]];
+    if(Math.abs(M[col][col])<1e-9) continue;
+    for(let r=0;r<n;r++){
+      if(r===col) continue;
+      const f=M[r][col]/M[col][col];
+      for(let c=col;c<=n;c++) M[r][c]-=f*M[col][c];
+    }
+  }
+  return M.map((row,i)=> Math.abs(row[i])>1e-9 ? row[n]/row[i] : 0);
+}
+function ridgeFit(samples, targetKey){
+  const lambda = 1e-3;
+  const n = samples.length;
+  const p = A_KEYS.length+1; // intercept + 8
+  const XtX = Array.from({length:p},()=>new Array(p).fill(0));
+  const Xty = new Array(p).fill(0);
+  for(const s of samples){
+    const row = [1, ...A_KEYS.map(k=>s[k])];
+    for(let j=0;j<p;j++){
+      Xty[j]+=row[j]*s[targetKey];
+      for(let k=0;k<p;k++) XtX[j][k]+=row[j]*row[k];
+    }
+  }
+  for(let j=1;j<p;j++) XtX[j][j]+=lambda; // ridge (skip intercept)
+  const beta = solveLinearSystem(XtX, Xty);
+  let ssRes=0, ssTot=0;
+  const yMean = samples.reduce((a,s)=>a+s[targetKey],0)/n;
+  for(const s of samples){
+    const row=[1, ...A_KEYS.map(k=>s[k])];
+    let pred=0; for(let j=0;j<p;j++) pred+=beta[j]*row[j];
+    ssRes += (s[targetKey]-pred)**2;
+    ssTot += (s[targetKey]-yMean)**2;
+  }
+  const r2 = ssTot>0 ? Math.max(0, 1-(ssRes/ssTot)) : 0;
+  return {coef:beta, r2};
+}
+function predictFromCoef(coef, a){
+  if(!coef) return null;
+  let pred = coef[0];
+  A_KEYS.forEach((k,i)=>{ pred += coef[i+1]*a[k]; });
+  return pred;
+}
+function fitRegressionForMode(mode){
+  const samples = RUNTIME.regressionSamples[mode] || [];
+  if(samples.length < 12){
+    toast(`โหมดนี้มีข้อมูลตัวอย่างแค่ ${samples.length} ชุด ต้องการอย่างน้อย 12 ชุด`);
+    return;
+  }
+  const fitTemp = ridgeFit(samples, 'temp');
+  const fitHumi = ridgeFit(samples, 'humi');
+  RUNTIME.regression[mode] = {coefTemp:fitTemp.coef, coefHumi:fitHumi.coef, r2Temp:fitTemp.r2, r2Humi:fitHumi.r2, n:samples.length};
+  persistRuntime();
+  renderParamCards();
+  toast(`คำนวณสมการโหมด ${MODE_META[mode].name} แล้ว (n=${samples.length})`);
+}
+
+/* ================= GLOBAL STATE ================= */
+let CURRENT_USER = null;
+let USERS = [];
+let PARAMS = defaultParams();
+let SCHEDULE = [];
+let RUNTIME = defaultRuntime();
+let SELECTED_DAYS = new Set(['mon','tue','wed','thu','fri']);
+const DAY_LABELS = {mon:'จ',tue:'อ',wed:'พ',thu:'พฤ',fri:'ศ',sat:'ส',sun:'อา'};
+const DAY_ORDER = ['mon','tue','wed','thu','fri','sat','sun'];
+const MODE_META = {
+  precool:{name:'PRE-COOL', color:'var(--cyan)', tagclass:'tag-cyan'},
+  operation:{name:'OPERATION', color:'var(--green)', tagclass:'tag-green'},
+  supercool:{name:'SUPER COOL', color:'var(--amber)', tagclass:'tag-amber'},
+  auto:{name:'AUTO', color:'#c58cf0', tagclass:'tag-grey'}
+};
+
+let SIM = { mode:'precool', autoSub:'precool', roomTemp:29.5, cw1Ret:24, cw2Ret:24, airflow:0, cw1Util:0, cw2Util:0, roomHumidity:68, roomW:null, humidityState:'idle', fanSpeedPct:100 };
+let LAST_TEST_RESULT = null;
+let simTimer = null, saveTimer = null;
+
+/* ================= AUTH ================= */
+async function seedUsersIfNeeded(){
+  USERS = await sGet('users', null);
+  if(!USERS || !USERS.length){
+    USERS = [{username:'admin', password:'admin123', fullname:'System Administrator', role:'admin', createdAt:Date.now()}];
+    await sSet('users', USERS);
+  }
+}
+function showRegister(){document.getElementById('loginPane').classList.add('hidden'); document.getElementById('registerPane').classList.remove('hidden');}
+function showLogin(){document.getElementById('registerPane').classList.add('hidden'); document.getElementById('loginPane').classList.remove('hidden');}
+
+async function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  err.classList.add('hidden');
+  await seedUsersIfNeeded();
+  const found = USERS.find(x=>x.username.toLowerCase()===u.toLowerCase() && x.password===p);
+  if(!found){ err.textContent='ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; err.classList.remove('hidden'); return; }
+  CURRENT_USER = found;
+  await bootApp();
+}
+
+async function doRegister(){
+  const u = document.getElementById('regUser').value.trim();
+  const p = document.getElementById('regPass').value;
+  const fn = document.getElementById('regFullname').value.trim();
+  const err = document.getElementById('regError');
+  err.classList.add('hidden');
+  if(u.length<3 || p.length<4){ err.textContent='Username อย่างน้อย 3 ตัว และรหัสผ่านอย่างน้อย 4 ตัวอักษร'; err.classList.remove('hidden'); return; }
+  await seedUsersIfNeeded();
+  if(USERS.find(x=>x.username.toLowerCase()===u.toLowerCase())){ err.textContent='ชื่อผู้ใช้นี้ถูกใช้งานแล้ว'; err.classList.remove('hidden'); return; }
+  const newUser = {username:u, password:p, fullname:fn||u, role:'operator', createdAt:Date.now()};
+  USERS.push(newUser);
+  await sSet('users', USERS);
+  toast('สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ');
+  showLogin();
+  document.getElementById('loginUser').value = u;
+}
+
+function doLogout(){
+  clearInterval(simTimer); clearInterval(saveTimer);
+  CURRENT_USER = null;
+  document.getElementById('appShell').classList.remove('active');
+  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('loginPass').value='';
+}
+
+/* ================= BOOT ================= */
+async function bootApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('appShell').classList.add('active');
+
+  const p = document.getElementById('userAvatar');
+  p.textContent = CURRENT_USER.username.slice(0,2).toUpperCase();
+  document.getElementById('userNameLbl').textContent = CURRENT_USER.fullname || CURRENT_USER.username;
+  document.getElementById('userRoleLbl').textContent = CURRENT_USER.role;
+  document.getElementById('navAdmin').classList.toggle('hidden', CURRENT_USER.role!=='admin');
+
+  PARAMS = await sGet('params', defaultParams());
+  SCHEDULE = await sGet('schedule', []);
+  RUNTIME = await sGet('runtime', defaultRuntime());
+  if(!RUNTIME.admin) RUNTIME.admin = defaultRuntime().admin;
+  {
+    const dAdm = defaultRuntime().admin;
+    Object.keys(dAdm).forEach(k=>{ if(RUNTIME.admin[k]===undefined) RUNTIME.admin[k]=dAdm[k]; });
+  }
+  if(RUNTIME.telemetryManual===undefined) RUNTIME.telemetryManual = false;
+  if(!RUNTIME.roomLoad) RUNTIME.roomLoad = defaultRuntime().roomLoad;
+  if(!RUNTIME.regressionSamples) RUNTIME.regressionSamples = defaultRuntime().regressionSamples;
+  if(!RUNTIME.regression) RUNTIME.regression = defaultRuntime().regression;
+  ['precool','operation','supercool','auto'].forEach(m=>{
+    if(!RUNTIME.regressionSamples[m]) RUNTIME.regressionSamples[m]=[];
+    if(!RUNTIME.regression[m]) RUNTIME.regression[m]={coefTemp:null, coefHumi:null, r2Temp:0, r2Humi:0, n:0};
+    if(PARAMS[m] && PARAMS[m].roomMin===undefined){
+      const d = defaultParams()[m];
+      ['roomMin','roomMax','humiMin','humiMax','fanMin','fanMax'].forEach(f=>{ PARAMS[m][f]=d[f]; });
+    }
+  });
+
+  SIM.mode = RUNTIME.controlSource==='manual' ? RUNTIME.manualMode : computeScheduledMode();
+  document.getElementById('admProject').value = RUNTIME.admin.project;
+  document.getElementById('admRoomTarget').value = RUNTIME.admin.roomTarget;
+  document.getElementById('admRoomTol').value = RUNTIME.admin.roomTol;
+  document.getElementById('admHumiditySetpoint').value = RUNTIME.admin.humiditySetpoint ?? 60;
+  document.getElementById('admSimRate').value = RUNTIME.admin.simRate;
+  document.getElementById('admQSens').value = RUNTIME.admin.qSensibleGain ?? 15;
+  document.getElementById('admQLat').value = RUNTIME.admin.qLatentGain ?? 6;
+  document.getElementById('admCRoom').value = RUNTIME.admin.roomThermalMass ?? 8;
+  document.getElementById('admAirMass').value = RUNTIME.admin.roomAirMass ?? 3600;
+  document.getElementById('admOaFrac').value = RUNTIME.admin.oaFraction ?? 15;
+  document.getElementById('admFreshRH').value = RUNTIME.admin.freshAirRH ?? 75;
+  document.getElementById('admBfCw1').value = RUNTIME.admin.bfCW1 ?? 0.18;
+  document.getElementById('admBfCw2').value = RUNTIME.admin.bfCW2 ?? 0.08;
+  document.getElementById('admDesignTRcw1').value = RUNTIME.admin.designTRcw1 ?? 9.2;
+  document.getElementById('admDesignTRcw2').value = RUNTIME.admin.designTRcw2 ?? 14.8;
+  document.getElementById('admReturnRise').value = RUNTIME.admin.returnLoadRise ?? 4;
+
+  renderDayPicker();
+  renderParamCards();
+  renderSchedule();
+  renderAdminUsers();
+  renderControlSourceUI();
+  renderSchematic();
+  document.getElementById('loadArea').value = RUNTIME.roomLoad.area;
+  document.getElementById('loadOccupancy').value = RUNTIME.roomLoad.occupancy;
+  document.getElementById('loadPersonSens').value = RUNTIME.roomLoad.personSens;
+  document.getElementById('loadPersonLat').value = RUNTIME.roomLoad.personLat;
+  document.getElementById('loadLighting').value = RUNTIME.roomLoad.lighting;
+  document.getElementById('loadEnvelope').value = RUNTIME.roomLoad.envelope;
+  updateRoomLoad();
+  setTelemetrySource(RUNTIME.telemetryManual ? 'manual' : 'auto');
+  runSimTick(); // initial paint
+  renderReports();
+
+  clearInterval(simTimer);
+  clearInterval(saveTimer);
+  simTimer = setInterval(runSimTick, 3000);
+  saveTimer = setInterval(persistRuntime, 15000);
+}
+
+/* ================= NAV ================= */
+function switchScreen(name){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.screen===name));
+  ['dashboard','params','schedule','reports','admin'].forEach(s=>{
+    document.getElementById('screen-'+s).classList.toggle('hidden', s!==name);
+  });
+  if(name==='reports') renderReports();
+}
+
+/* ================= CONTROL SOURCE ================= */
+function renderControlSourceUI(){
+  document.getElementById('srcManualBtn').classList.toggle('active', RUNTIME.controlSource==='manual');
+  document.getElementById('srcScheduleBtn').classList.toggle('active', RUNTIME.controlSource==='schedule');
+  document.getElementById('manualModeButtons').style.opacity = RUNTIME.controlSource==='manual' ? '1':'0.35';
+  document.getElementById('manualModeButtons').style.pointerEvents = RUNTIME.controlSource==='manual' ? 'auto':'none';
+  document.querySelectorAll('#manualModeButtons .pill-btn').forEach(el=>{
+    el.classList.toggle('active', el.dataset.m===RUNTIME.manualMode);
+  });
+  document.getElementById('controlSourceNote').textContent = RUNTIME.controlSource==='manual'
+    ? 'โหมด Manual Override: ผู้ปฏิบัติงานเลือกโหมดทำงานด้วยตนเอง'
+    : 'โหมด Follow Schedule: ระบบเลือกโหมดทำงานอัตโนมัติตามตารางเวลาที่ตั้งไว้ในหน้า Schedule';
+}
+function setControlSource(src){
+  RUNTIME.controlSource = src;
+  renderControlSourceUI();
+  persistRuntime();
+  quickRepaint();
+  toast(src==='manual' ? 'เปลี่ยนเป็นควบคุมด้วยตนเอง' : 'เปลี่ยนเป็นทำงานตามตารางเวลา');
+}
+function setManualMode(m){
+  RUNTIME.manualMode = m;
+  renderControlSourceUI();
+  persistRuntime();
+  quickRepaint();
+}
+
+function computeScheduledMode(){
+  const now = new Date();
+  const dayKeys = ['sun','mon','tue','wed','thu','fri','sat'];
+  const today = dayKeys[now.getDay()];
+  const cur = now.getHours()*60+now.getMinutes();
+  for(const e of SCHEDULE){
+    if(!e.enabled) continue;
+    if(!e.days.includes(today)) continue;
+    const [sh,sm] = e.start.split(':').map(Number);
+    const [eh,em] = e.end.split(':').map(Number);
+    const s = sh*60+sm, en = eh*60+em;
+    if(s<=en){ if(cur>=s && cur<en) return e.mode; }
+    else { if(cur>=s || cur<en) return e.mode; } // overnight span
+  }
+  return 'precool';
+}
+
+/* ================= SIMULATION ================= */
+function logEvent(text, mode){
+  RUNTIME.events.unshift({ts:Date.now(), text, mode});
+  RUNTIME.events = RUNTIME.events.slice(0,60);
+}
+
+/* ================= PSYCHROMETRICS (real HVAC equations) ================= */
+// Magnus-Tetens saturation vapor pressure (kPa), t in °C
+function psatKPa(tC){ return 0.6108*Math.exp((17.27*tC)/(tC+237.3)); }
+// Humidity ratio (kg water / kg dry air) from RH% and dry-bulb temp, at ~sea level (101.325 kPa)
+function humidityRatioFromRH(tC, rhPct){
+  const P = 101.325;
+  const pv = Math.max(0, (rhPct/100)*psatKPa(tC));
+  return 0.622*pv/Math.max(0.01, P-pv);
+}
+// %RH from humidity ratio and dry-bulb temp
+function rhFromHumidityRatio(tC, w){
+  const P = 101.325;
+  const pv = (w*P)/(0.622+w);
+  const ps = psatKPa(tC);
+  return Math.max(5, Math.min(100, (pv/Math.max(0.01,ps))*100));
+}
+// Coil process using Apparatus-Dew-Point + Bypass-Factor model:
+// leaving air condition = ADP + BF*(entering - ADP), same rule for T and w (w limited to saturation at ADP)
+function coilProcess(tC_in, w_in, chwEnterC, bf){
+  const adp = chwEnterC + 1.0; // coil-surface approach above chilled-water supply temp
+  const wSatAdp = humidityRatioFromRH(adp, 100);
+  const tOut = adp + bf*(tC_in-adp);
+  const wOut = Math.max(wSatAdp*0.85, wSatAdp + bf*(w_in-wSatAdp));
+  return {t:tOut, w:wOut};
+}
+// Rated chilled-water flow at design capacity (Q=32.34/51.88kW, assumed 5°C design ΔT): Q/(4.19*ΔT), L/s->GPM (×15.85)
+const RATED_GPM_CW1 = (32.34/(4.19*5))*15.85; // ≈ 24.5 GPM
+const RATED_GPM_CW2 = (51.88/(4.19*5))*15.85; // ≈ 39.2 GPM
+// More water flow through a coil = more heat transfer = lower effective bypass factor (colder & drier
+// leaving air, better dehumidification too); less flow = worse. Only kicks in when telemetry is manually
+// overridden — in Auto the valve is assumed fully open at rated flow (ratio = 1, no change from before).
+function coilFlowRatio(coilId){
+  if(!RUNTIME.telemetryManual) return 1;
+  const gpm = coilId==='cw1' ? SIM.a6_cw1 : SIM.a6_cw2;
+  if(gpm==null) return 1;
+  const rated = coilId==='cw1' ? RATED_GPM_CW1 : RATED_GPM_CW2;
+  return Math.max(0.15, Math.min(1.6, gpm/rated));
+}
+function effectiveBF(baseBF, ratio){
+  return Math.max(0.03, Math.min(0.6, baseBF/ratio));
+}
+function recomputeTR(){
+  // TR = ΔT(°F, CHR-CHS) × Water Flow(GPM) ÷ 24 — recomputed instantly whenever A1/A2/A6 change,
+  // not just on the next 3s tick, so Manual edits show a correct answer right away.
+  SIM.trCW1 = (SIM.a1_cw1!=null && SIM.a2_cw1!=null && SIM.a6_cw1!=null) ? Math.max(0,(SIM.a2_cw1-SIM.a1_cw1)*SIM.a6_cw1/24) : 0;
+  SIM.trCW2 = (SIM.a1_cw2!=null && SIM.a2_cw2!=null && SIM.a6_cw2!=null) ? Math.max(0,(SIM.a2_cw2-SIM.a1_cw2)*SIM.a6_cw2/24) : 0;
+}
+
+function resolveActiveStates(mode){
+  // Pure: decides which coils/fan should be active for a given mode, without mutating SIM or logging.
+  let activeMode = mode;
+  const humiditySetpoint = RUNTIME.admin.humiditySetpoint ?? 60;
+  if(mode==='auto'){
+    const p = PARAMS.auto;
+    const dev = SIM.roomTemp - p.targetTemp;
+    const humiDev = SIM.roomHumidity - humiditySetpoint;
+    if(dev > p.scThreshold || humiDev > 10) activeMode = 'supercool';
+    else if(dev > p.opThreshold || humiDev > 3) activeMode = 'operation';
+    else activeMode = 'precool';
+  }
+  const cw1On = activeMode==='precool' ? PARAMS.precool.cw1 : (activeMode==='supercool' ? PARAMS.supercool.cw1 : false);
+  const cw2On = activeMode==='operation' ? PARAMS.operation.cw2 : (activeMode==='supercool' ? PARAMS.supercool.cw2 : false);
+  const fanOn = activeMode==='precool' ? PARAMS.precool.fan : (activeMode==='operation'?PARAMS.operation.fan:(activeMode==='supercool'?PARAMS.supercool.fan:true));
+  const baseFanPct = PARAMS[activeMode] && PARAMS[activeMode].fanMin!=null ? (PARAMS[activeMode].fanMin+PARAMS[activeMode].fanMax)/2 : 100;
+  return {activeMode, cw1On, cw2On, fanOn, baseFanPct};
+}
+
+function quickRepaint(){
+  // Instant visual feedback when the operator picks a mode: fast-responding actuators
+  // (fan speed / CFM, valve position, CW water temp) snap to their new target right away —
+  // that's realistic, a VSD fan and modulating valve react in seconds. Room Temp/Humidity is
+  // slow thermal mass though, so that's deliberately left untouched here; repeated clicks must
+  // never fast-forward the room's actual thermal response — only the real 3s tick does that.
+  const desired = RUNTIME.controlSource==='manual' ? RUNTIME.manualMode : computeScheduledMode();
+  if(desired !== SIM.mode){
+    logEvent(`เปลี่ยนโหมดเป็น ${MODE_META[desired].name}`, desired);
+    RUNTIME.modeSwitchCount = (RUNTIME.modeSwitchCount||0)+1;
+    SIM.mode = desired;
+  }
+  const resolved = resolveActiveStates(SIM.mode);
+  SIM.autoSub = resolved.activeMode;
+  SIM.fanSpeedPct = SIM.humidityState==='trim' ? Math.min(resolved.baseFanPct, 55) : resolved.baseFanPct;
+
+  // snap fast actuators to their new target instead of waiting for the easing in runSimTick
+  SIM.airflow = resolved.fanOn ? 10000*(SIM.fanSpeedPct/100) : 0;
+  SIM.cw1Util = resolved.cw1On ? 100 : 0;
+  SIM.cw2Util = resolved.cw2On ? 100 : 0;
+  const cw1Sp = PARAMS.precool.cw1Setpoint ?? PARAMS.supercool.cw1Setpoint ?? 14.5;
+  const cw2Sp = PARAMS.operation.cw2Setpoint ?? PARAMS.supercool.cw2Setpoint ?? 14.5;
+  SIM.cw1Ret = resolved.cw1On ? cw1Sp : cw1Sp+9;
+  SIM.cw2Ret = resolved.cw2On ? cw2Sp : cw2Sp+9;
+  if(!RUNTIME.telemetryManual){
+    SIM.a5 = SIM.airflow;
+  }
+
+  paintDashboard(resolved.activeMode, {cw1On:resolved.cw1On, cw2On:resolved.cw2On, fanOn:resolved.fanOn});
+  persistRuntime();
+}
+
+function runSimTick(){
+  const desired = RUNTIME.controlSource==='manual' ? RUNTIME.manualMode : computeScheduledMode();
+  if(desired !== SIM.mode){
+    logEvent(`เปลี่ยนโหมดเป็น ${MODE_META[desired].name}`, desired);
+    RUNTIME.modeSwitchCount = (RUNTIME.modeSwitchCount||0)+1;
+    SIM.mode = desired;
+  }
+
+  const resolved = resolveActiveStates(SIM.mode);
+  let activeMode = resolved.activeMode;
+  SIM.autoSub = activeMode;
+  const humiditySetpoint = RUNTIME.admin.humiditySetpoint ?? 60;
+
+  // Coil / fan assignment is FIXED per mode — no runtime override:
+  //   Pre-Cool  = Filter(9) + CW-1(8) + Fan(6)              — CW-2(7) OFF
+  //   Operation = Filter(9) + CW-2(7) + Fan(6)              — CW-1(8) OFF
+  //   Super Cool= Filter(9) + CW-1(8) + CW-2(7) + Fan(6)
+  //   Auto      = resolves to one of the three above based on Room Temp + Room Humidity
+  let cw1On = resolved.cw1On;
+  let cw2On = resolved.cw2On;
+  let fanOn = resolved.fanOn;
+
+  // ===== Humidity monitoring =====
+  // Humidity no longer forces extra coils on (that broke the fixed per-mode coil table above).
+  // Instead it: (a) helps steer Auto mode's sub-mode choice (see above), and (b) trims fan speed
+  // a bit on top of whichever coil the active mode already uses, to give the coil more contact time.
+  const humidityHigh = humiditySetpoint + 5;
+  const humidityLow = humiditySetpoint - 8;
+  const prevHumidState = SIM.humidityState;
+  if(SIM.humidityState!=='boost' && SIM.roomHumidity > humidityHigh){
+    SIM.humidityState = 'boost';
+  } else if(SIM.humidityState==='boost' && SIM.roomHumidity <= humiditySetpoint){
+    SIM.humidityState = 'trim';
+  } else if(SIM.humidityState==='trim'){
+    if(SIM.roomHumidity > humidityHigh) SIM.humidityState = 'boost';
+    else if(SIM.roomHumidity <= humidityLow) SIM.humidityState = 'idle';
+  } else if(SIM.humidityState==='idle' && SIM.roomHumidity > humidityHigh){
+    SIM.humidityState = 'boost';
+  }
+  if(SIM.humidityState !== prevHumidState){
+    if(SIM.humidityState==='boost') logEvent('ความชื้นสูงเกินค่าตั้ง — จับตาดูใกล้ชิด (Auto จะเลือกโหมดที่แรงขึ้นให้เอง)', SIM.mode);
+    if(SIM.humidityState==='trim') logEvent('ความชื้นเข้าสู่การควบคุม — ลดความเร็วพัดลมลงเพื่อลดความชื้นต่อเนื่อง', SIM.mode);
+    if(SIM.humidityState==='idle') logEvent('ความชื้นเป็นปกติแล้ว', SIM.mode);
+  }
+  SIM.fanSpeedPct = SIM.humidityState==='trim' ? Math.min(resolved.baseFanPct, 55) : resolved.baseFanPct;
+
+  const simMinutes = RUNTIME.admin.simRate || 5;
+  const simHours = simMinutes/60;
+
+  // airflow
+  const targetFlow = fanOn ? 10000*(SIM.fanSpeedPct/100) : 0;
+  SIM.airflow += (targetFlow - SIM.airflow)*0.35;
+  if(SIM.airflow < 15) SIM.airflow = 0;
+
+  // CW utilization ramps
+  SIM.cw1Util += ((cw1On?100:0) - SIM.cw1Util)*0.3;
+  SIM.cw2Util += ((cw2On?100:0) - SIM.cw2Util)*0.3;
+  const cw1Sp = PARAMS.precool.cw1Setpoint ?? PARAMS.supercool.cw1Setpoint ?? 14.5;
+  const cw2Sp = PARAMS.operation.cw2Setpoint ?? PARAMS.supercool.cw2Setpoint ?? 14.5;
+  SIM.cw1Ret += ((cw1On? cw1Sp : cw1Sp+9) - SIM.cw1Ret)*0.25;
+  SIM.cw2Ret += ((cw2On? cw2Sp : cw2Sp+9) - SIM.cw2Ret)*0.25;
+
+  // ===== A1-A8 machine telemetry =====
+  // In AUTO source these are computed from the running plant; in MANUAL they're pinned to
+  // whatever the operator typed into the telemetry grid, and those pinned values still drive
+  // the physics calculation below (useful for commissioning / what-if checks).
+  // CHS/CHR/Water Flow are measured with SEPARATE sensors per coil in this installation, so
+  // CW-1 and CW-2 each get their own A1/A2/A6 reading (used for independent TR verification).
+  const chsBase = 6.5 + (Math.random()-0.5)*0.3; // shared central-plant CHS baseline
+  if(!RUNTIME.telemetryManual){
+    SIM.a1_cw1 = (chsBase + (Math.random()-0.5)*0.2)*9/5+32; // CHS Entering CW-1 (°F)
+    SIM.a1_cw2 = (chsBase + (Math.random()-0.5)*0.2)*9/5+32; // CHS Entering CW-2 (°F)
+    const chr1C = cw1On ? SIM.cw1Ret : chsBase+8;
+    const chr2C = cw2On ? SIM.cw2Ret : chsBase+8;
+    SIM.a2_cw1 = chr1C*9/5+32; // CHR Leaving CW-1 (°F)
+    SIM.a2_cw2 = chr2C*9/5+32; // CHR Leaving CW-2 (°F)
+    SIM.a3 = 0.15 + (SIM.airflow/10000)*0.35 + (Math.random()-0.5)*0.01; // Pressure entering (Psig)
+    const pdrop = 0.08 + (SIM.airflow/10000)*0.12;
+    SIM.a4 = Math.max(0, SIM.a3 - pdrop); // Pressure leaving (Psig)
+    SIM.a5 = SIM.airflow; // Air Flow (CFM)
+    const tons1 = cw1On ? (32.34*(SIM.cw1Util/100))/3.517 : 0;
+    const deltaF1 = Math.max(2, SIM.a2_cw1-SIM.a1_cw1);
+    SIM.a6_cw1 = tons1>0 ? (tons1*24/deltaF1) : 0; // Water Flow CW-1 (GPM)
+    const tons2 = cw2On ? (51.88*(SIM.cw2Util/100))/3.517 : 0;
+    const deltaF2 = Math.max(2, SIM.a2_cw2-SIM.a1_cw2);
+    SIM.a6_cw2 = tons2>0 ? (tons2*24/deltaF2) : 0; // Water Flow CW-2 (GPM)
+    SIM.a8 = (SIM.a8 || 33) + (33-(SIM.a8||33))*0.02 + (Math.random()-0.5)*0.15; // Fresh Air Temp (°C)
+  }
+  // TR verification per coil: TR = ΔT(°F) × GPM ÷ 24 — always computed live so it reflects
+  // whatever A1/A2/A6 currently are, whether Auto-computed or Manual-pinned.
+  recomputeTR();
+
+  // ===== Physics-based Room Temp / Room Humidity (psychrometrics + heat balance) =====
+  const adm = RUNTIME.admin;
+  const oaFrac = (adm.oaFraction ?? 15)/100;
+  const bfCW1 = adm.bfCW1 ?? 0.18, bfCW2 = adm.bfCW2 ?? 0.08;
+  const freshRH = adm.freshAirRH ?? 75;
+  const chsC_cw1 = (SIM.a1_cw1-32)*5/9;
+  const chsC_cw2 = (SIM.a1_cw2-32)*5/9;
+  // Effective coil water temp = average of CHS entering (that coil's own sensor) and the mode's own
+  // CHR return SETPOINT (from Mode Parameters). A coil modulated to hold a warmer return setpoint
+  // runs a warmer effective surface temp than one running flat-out at the raw plant supply temp.
+  const adpBasisCW1 = (chsC_cw1 + cw1Sp)/2;
+  const adpBasisCW2 = (chsC_cw2 + cw2Sp)/2;
+
+  // 1) mixed air upstream of the coil = blend of return air (room) and fresh air (A8)
+  const wRoom = SIM.roomW ?? humidityRatioFromRH(SIM.roomTemp, SIM.roomHumidity);
+  const wFresh = humidityRatioFromRH(SIM.a8, freshRH);
+  let tAir = oaFrac*SIM.a8 + (1-oaFrac)*SIM.roomTemp;
+  let wAir = oaFrac*wFresh + (1-oaFrac)*wRoom;
+
+  // 2) pass through whichever coil(s) are active (series, per the physical layout CW-1 -> CW-2)
+  if(fanOn && cw1On){ const bf1 = effectiveBF(bfCW1, coilFlowRatio('cw1')); const r = coilProcess(tAir, wAir, adpBasisCW1, bf1); tAir=r.t; wAir=r.w; }
+  if(fanOn && cw2On){ const bf2 = effectiveBF(bfCW2, coilFlowRatio('cw2')); const r = coilProcess(tAir, wAir, adpBasisCW2, bf2); tAir=r.t; wAir=r.w; }
+  const tSupply = tAir + 0.3; // small fan heat pickup
+  const wSupply = wAir;
+
+  // 3) room sensible heat balance: Q(kW) = 1.2 kJ/m3K x volumetric flow(m3/s) x deltaT(C)
+  const cfmForCalc = SIM.a5 ?? SIM.airflow;
+  const m3s = cfmForCalc*0.000471947;
+  const qDeliverSens = fanOn ? 1.2*m3s*(SIM.roomTemp - tSupply) : 0; // +kW = net cooling delivered
+  const qGainSensPeek = adm.qSensibleGain ?? 15;
+  SIM.netHeating = fanOn && (cw1On||cw2On) && (qGainSensPeek > qDeliverSens);
+  const qGainSens = adm.qSensibleGain ?? 15; // kW, internal + envelope heat gain
+  const cRoom = Math.max(1, adm.roomThermalMass ?? 8); // kWh/°C
+  const dT = ((qGainSens - qDeliverSens)/cRoom)*simHours;
+  SIM.roomTemp += dT + (Math.random()-0.5)*0.02;
+  SIM.roomTemp = Math.max(15, Math.min(38, SIM.roomTemp));
+
+  // 4) room latent (moisture) balance: Q_latent(kW) = 2501 kJ/kg x mass flow(kg/s) x delta-w
+  const massFlowKgS = m3s*1.2; // dry air density ~1.2 kg/m3
+  const moistureRemovedKgHr = fanOn ? massFlowKgS*3600*Math.max(0, wRoom-wSupply) : 0;
+  const qLatentGain = adm.qLatentGain ?? 6; // kW of latent gain (people / infiltration)
+  const moistureGainKgHr = (qLatentGain*3600)/2501;
+  const roomAirMassKg = Math.max(100, adm.roomAirMass ?? 3600);
+  const dW = ((moistureGainKgHr - moistureRemovedKgHr)/roomAirMassKg)*simHours;
+  const newW = Math.max(0.002, wRoom + dW);
+  SIM.roomW = newW;
+  SIM.roomHumidity = rhFromHumidityRatio(SIM.roomTemp, newW);
+  if(!RUNTIME.telemetryManual) SIM.a7 = SIM.roomTemp; // Return Temp (°C) — return air ≈ room air, always in sync with the value just computed above
+
+  // log a training sample for this mode's regression model (Room Temp / Humidity <- A1..A8)
+  const sampleModeKey = SIM.mode; // log against the user-selected mode (precool/operation/supercool/auto)
+  const a1_repr = (SIM.a1_cw1!=null && SIM.a1_cw2!=null) ? (SIM.a1_cw1+SIM.a1_cw2)/2 : (SIM.a1_cw1 ?? SIM.a1_cw2);
+  const a2_repr = (SIM.a2_cw1!=null && SIM.a2_cw2!=null) ? (SIM.a2_cw1+SIM.a2_cw2)/2 : (SIM.a2_cw1 ?? SIM.a2_cw2);
+  const a6_repr = (SIM.a6_cw1||0) + (SIM.a6_cw2||0);
+  const sample = {a1:a1_repr, a2:a2_repr, a3:SIM.a3, a4:SIM.a4, a5:SIM.a5, a6:a6_repr, a7:SIM.a7, a8:SIM.a8, temp:SIM.roomTemp, humi:SIM.roomHumidity};
+  if(!RUNTIME.regressionSamples[sampleModeKey]) RUNTIME.regressionSamples[sampleModeKey]=[];
+  RUNTIME.regressionSamples[sampleModeKey].push(sample);
+  if(RUNTIME.regressionSamples[sampleModeKey].length > 200) RUNTIME.regressionSamples[sampleModeKey].shift();
+
+  // energy accrual (kWh) — simRate seconds real = simRate minutes simulated -> convert to hours
+  let kw = 0;
+  if(cw1On) kw += 32.34*(SIM.cw1Util/100);
+  if(cw2On) kw += 51.88*(SIM.cw2Util/100);
+  if(fanOn) kw += 7.5*(SIM.fanSpeedPct/100);
+  const kwh = kw*simHours;
+  RUNTIME.energyKWhTotal = (RUNTIME.energyKWhTotal||0) + kwh;
+  const dayKey = new Date().toISOString().slice(0,10);
+  RUNTIME.energyDaily[dayKey] = (RUNTIME.energyDaily[dayKey]||0) + kwh;
+  RUNTIME.modeSeconds[SIM.mode] = (RUNTIME.modeSeconds[SIM.mode]||0) + simMinutes*60;
+
+  paintDashboard(activeMode, {cw1On, cw2On, fanOn});
+}
+
+/* ================= RENDER: DASHBOARD ================= */
+function paintDashboard(activeMode, states){
+  document.getElementById('mAirflow').textContent = Math.round(SIM.airflow).toLocaleString();
+  document.getElementById('mAirflowBar').style.width = Math.min(100, SIM.airflow/10000*100)+'%';
+
+  document.getElementById('mRoomTemp').textContent = SIM.roomTemp.toFixed(1);
+  document.getElementById('mRoomTarget').textContent = RUNTIME.admin.roomTarget.toFixed(1);
+  document.getElementById('mRoomTol').textContent = RUNTIME.admin.roomTol.toFixed(1);
+  document.getElementById('mRoomHumi').textContent = SIM.roomHumidity.toFixed(1);
+  document.getElementById('mHumiTarget').textContent = Math.round(RUNTIME.admin.humiditySetpoint ?? 60);
+  const humiEl = document.getElementById('mRoomHumi');
+  humiEl.style.color = SIM.humidityState==='boost' ? 'var(--amber)' : (SIM.humidityState==='trim' ? 'var(--cyan)' : 'var(--text-dim)');
+  const roomPct = Math.max(0, Math.min(100, ((SIM.roomTemp-15)/(35-15))*100));
+  document.getElementById('mRoomBar').style.width = roomPct+'%';
+  const overloadEl = document.getElementById('mOverloadWarn');
+  if(overloadEl) overloadEl.classList.toggle('hidden', !SIM.netHeating);
+
+  const cw1El = document.getElementById('mCw1');
+  cw1El.textContent = states.cw1On ? SIM.cw1Ret.toFixed(1)+'°C' : 'OFF';
+  cw1El.style.color = states.cw1On ? 'var(--green)' : 'var(--text-faint)';
+  document.getElementById('mCw1Bar').style.width = SIM.cw1Util+'%';
+  document.getElementById('mCw1Sp').textContent = (PARAMS.precool.cw1Setpoint||14.5).toFixed(1);
+
+  const cw2El = document.getElementById('mCw2');
+  cw2El.textContent = states.cw2On ? SIM.cw2Ret.toFixed(1)+'°C' : 'OFF';
+  cw2El.style.color = states.cw2On ? 'var(--green)' : 'var(--text-faint)';
+  document.getElementById('mCw2Bar').style.width = SIM.cw2Util+'%';
+  document.getElementById('mCw2Sp').textContent = (PARAMS.operation.cw2Setpoint||14.5).toFixed(1);
+
+  // status pill
+  const pill = document.getElementById('topStatusPill');
+  const meta = MODE_META[SIM.mode];
+  let statusTxt = SIM.mode==='auto' ? `AUTO (${MODE_META[SIM.autoSub].name})` : meta.name + ' MODE';
+  if(SIM.humidityState==='boost') statusTxt += ' · DEHUMIDIFY WATCH';
+  else if(SIM.humidityState==='trim') statusTxt += ' · DEHUMIDIFY VSD ASSIST';
+  document.getElementById('topStatusText').textContent = statusTxt;
+  const blip = pill.querySelector('.blip');
+  blip.style.background = meta.color; blip.style.boxShadow = `0 0 8px ${meta.color}`;
+  pill.style.color = meta.color; pill.style.borderColor = meta.color;
+
+  renderModeBadges();
+  updateSchematicState(states, activeMode);
+  updateTelemetry();
+  renderDiagnostics();
+}
+
+function runDiagnostics(){
+  const findings = [];
+  const adm = RUNTIME.admin;
+  const target = adm.roomTarget ?? 25;
+  const tol = adm.roomTol ?? 2;
+  const dev = SIM.roomTemp - target;
+  const withinBand = Math.abs(dev) <= tol;
+
+  if(withinBand){
+    findings.push({level:'ok', title:'อุณหภูมิห้องอยู่ในเกณฑ์ที่ตั้งไว้', detail:`Room Temp ${SIM.roomTemp.toFixed(1)}°C อยู่ในช่วง Setpoint ${target}±${tol}°C — ไม่พบสาเหตุที่ต้องแก้ไข`});
+    return findings;
+  }
+
+  findings.push({level:'warn', title: dev>0 ? 'อุณหภูมิห้องยังสูงกว่า Setpoint' : 'อุณหภูมิห้องต่ำกว่า Setpoint', detail:`ค่าจริง ${SIM.roomTemp.toFixed(1)}°C ห่างจาก Setpoint ${target}°C อยู่ ${Math.abs(dev).toFixed(1)}°C`});
+
+  if(dev>0){
+    const resolved = resolveActiveStates(SIM.mode);
+    if(resolved.cw1On){
+      const d1 = adm.designTRcw1 ?? 9.2;
+      const pct1 = d1>0 ? (SIM.trCW1/d1*100) : 0;
+      if(pct1<70) findings.push({level:'critical', title:'TR CW-1 ต่ำกว่าออกแบบมาก', detail:`วัดได้ ${SIM.trCW1.toFixed(1)} TR (${pct1.toFixed(0)}% ของ ${d1.toFixed(1)} TR) — ตรวจสอบปั๊มน้ำเย็น, วาล์วเปิดไม่สุด, หรือคอยล์อุดตัน`});
+      else if(pct1<90) findings.push({level:'warn', title:'TR CW-1 ต่ำกว่าออกแบบเล็กน้อย', detail:`วัดได้ ${SIM.trCW1.toFixed(1)} TR (${pct1.toFixed(0)}% ของ ${d1.toFixed(1)} TR) — ควรตรวจสอบ`});
+    }
+    if(resolved.cw2On){
+      const d2 = adm.designTRcw2 ?? 14.8;
+      const pct2 = d2>0 ? (SIM.trCW2/d2*100) : 0;
+      if(pct2<70) findings.push({level:'critical', title:'TR CW-2 ต่ำกว่าออกแบบมาก', detail:`วัดได้ ${SIM.trCW2.toFixed(1)} TR (${pct2.toFixed(0)}% ของ ${d2.toFixed(1)} TR) — ตรวจสอบปั๊มน้ำเย็น, วาล์วเปิดไม่สุด, หรือคอยล์อุดตัน`});
+      else if(pct2<90) findings.push({level:'warn', title:'TR CW-2 ต่ำกว่าออกแบบเล็กน้อย', detail:`วัดได้ ${SIM.trCW2.toFixed(1)} TR (${pct2.toFixed(0)}% ของ ${d2.toFixed(1)} TR) — ควรตรวจสอบ`});
+    }
+    const targetFlow = resolved.fanOn ? 10000*((SIM.fanSpeedPct||resolved.baseFanPct)/100) : 0;
+    if(targetFlow>0 && SIM.airflow < targetFlow*0.85){
+      findings.push({level:'warn', title:'ลมจ่ายต่ำกว่าที่ตั้งไว้', detail:`วัดได้ ${Math.round(SIM.airflow)} CFM ควรได้ ~${Math.round(targetFlow)} CFM — ตรวจสอบพัดลม VSD, สายพาน, หรือ Filter อุดตัน`});
+    }
+    if(SIM.a3!=null && SIM.a4!=null){
+      const dp = SIM.a3-SIM.a4;
+      if(dp > 0.30) findings.push({level:'warn', title:'Pressure Drop สูงผิดปกติ', detail:`ΔP = ${dp.toFixed(2)} Psig (A3 ${SIM.a3.toFixed(2)} − A4 ${SIM.a4.toFixed(2)}) — น่าจะเกิดจาก Filter อุดตัน ควรทำความสะอาด/เปลี่ยน`});
+    }
+    if(SIM.a7!=null){
+      const expected = target+(adm.returnLoadRise??4);
+      if(SIM.a7 > expected+1.5){
+        findings.push({level:'warn', title:'ลมกลับ (A7) ร้อนกว่าที่ออกแบบ', detail:`วัดได้ ${SIM.a7.toFixed(1)}°C คาดหวัง ~${expected.toFixed(1)}°C — โหลดจริงอาจสูงกว่าที่ตั้งไว้ (คน/แสง/ประตูเปิด) พิจารณาเปิด CW-1 ช่วยลดภาระก่อนเข้า CW-2 หรือปรับ Room Load Inputs ให้ตรงสภาพจริง`});
+      }
+    }
+    if(SIM.netHeating){
+      findings.push({level:'critical', title:'โหลดความร้อนรวมเกินกำลังทำความเย็น ณ ขณะนี้', detail:'แม้เปิดคอยล์เต็มที่ก็ยังไม่พอ — ตรวจสอบ Room Load Inputs (พื้นที่/จำนวนคน) ให้ตรงสภาพจริง หรือพิจารณาโหมด/เครื่องช่วยเพิ่ม'});
+    }
+    if(findings.length===1){
+      findings.push({level:'ok', title:'ไม่พบความผิดปกติจากค่าที่วัดได้', detail:'อุปกรณ์ดูทำงานปกติตามค่าที่วัดได้ในขณะนี้ — อาจเป็นเพราะห้องยังไม่ถึงสภาวะคงตัว (thermal mass ต้องใช้เวลา) ลองกด "ทดสอบผลลัพธ์" เพื่อดูค่าที่ควรจะลงตัวในที่สุด'});
+    }
+  }
+  return findings;
+}
+function renderDiagnostics(){
+  const host = document.getElementById('diagnosticsList');
+  if(!host) return;
+  const findings = runDiagnostics();
+  host.innerHTML = findings.map(f=>`
+    <div class="diag-item ${f.level}">
+      <div class="diag-dot"></div>
+      <div><div class="diag-title">${f.title}</div><div class="diag-detail">${f.detail}</div></div>
+    </div>`).join('');
+}
+
+function updateTelemetry(){
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(document.activeElement===el) return; // don't fight the user while they're typing
+    el.value = val;
+  };
+  set('teleA1cw1', SIM.a1_cw1!=null ? SIM.a1_cw1.toFixed(1) : '');
+  set('teleA2cw1', SIM.a2_cw1!=null ? SIM.a2_cw1.toFixed(1) : '');
+  set('teleA6cw1', SIM.a6_cw1!=null ? SIM.a6_cw1.toFixed(1) : '');
+  set('teleA1cw2', SIM.a1_cw2!=null ? SIM.a1_cw2.toFixed(1) : '');
+  set('teleA2cw2', SIM.a2_cw2!=null ? SIM.a2_cw2.toFixed(1) : '');
+  set('teleA6cw2', SIM.a6_cw2!=null ? SIM.a6_cw2.toFixed(1) : '');
+  set('teleA3', SIM.a3!=null ? SIM.a3.toFixed(2) : '');
+  set('teleA4', SIM.a4!=null ? SIM.a4.toFixed(2) : '');
+  set('teleA5', SIM.a5!=null ? Math.round(SIM.a5) : '');
+  set('teleA7', SIM.a7!=null ? SIM.a7.toFixed(1) : '');
+  set('teleA8', SIM.a8!=null ? SIM.a8.toFixed(1) : '');
+  const setText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  setText('teleA1cw1c', SIM.a1_cw1!=null ? `\u2248 ${((SIM.a1_cw1-32)*5/9).toFixed(1)} °C` : '\u2248 -- °C');
+  setText('teleA2cw1c', SIM.a2_cw1!=null ? `\u2248 ${((SIM.a2_cw1-32)*5/9).toFixed(1)} °C` : '\u2248 -- °C');
+  setText('teleA1cw2c', SIM.a1_cw2!=null ? `\u2248 ${((SIM.a1_cw2-32)*5/9).toFixed(1)} °C` : '\u2248 -- °C');
+  setText('teleA2cw2c', SIM.a2_cw2!=null ? `\u2248 ${((SIM.a2_cw2-32)*5/9).toFixed(1)} °C` : '\u2248 -- °C');
+  setText('teleA7f', SIM.a7!=null ? `\u2248 ${(SIM.a7*9/5+32).toFixed(1)} °F` : '\u2248 -- °F');
+  setText('teleA8f', SIM.a8!=null ? `\u2248 ${(SIM.a8*9/5+32).toFixed(1)} °F` : '\u2248 -- °F');
+
+  // TR verification vs design
+  const dTR1 = RUNTIME.admin.designTRcw1 ?? 9.2, dTR2 = RUNTIME.admin.designTRcw2 ?? 14.8;
+  setText('trDesignCw1', dTR1.toFixed(1));
+  setText('trDesignCw2', dTR2.toFixed(1));
+  const trOut = (id, tr, design) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(tr==null || tr<=0){ el.textContent='--'; el.style.color='var(--text-dim)'; return; }
+    const pct = design>0 ? (tr/design*100) : 0;
+    el.textContent = tr.toFixed(1)+` (${pct.toFixed(0)}%)`;
+    el.style.color = pct>=90 ? 'var(--green)' : (pct>=70 ? 'var(--amber)' : 'var(--red)');
+  };
+  trOut('trCw1Out', SIM.trCW1, dTR1);
+  trOut('trCw2Out', SIM.trCW2, dTR2);
+
+  // A7 expected-band hint: return air should read close to room setpoint + load rise
+  const expectedA7 = (RUNTIME.admin.roomTarget ?? 25) + (RUNTIME.admin.returnLoadRise ?? 4);
+  const a7Hint = document.getElementById('teleA7expected');
+  if(a7Hint) a7Hint.textContent = `(คาดหวัง \u2248${expectedA7.toFixed(1)}\u00b0C)`;
+}
+function setTelemetrySource(src){
+  RUNTIME.telemetryManual = (src==='manual');
+  document.getElementById('teleAutoBtn').classList.toggle('active', !RUNTIME.telemetryManual);
+  document.getElementById('teleManualBtn').classList.toggle('active', RUNTIME.telemetryManual);
+  ['teleA1cw1','teleA2cw1','teleA6cw1','teleA1cw2','teleA2cw2','teleA6cw2','teleA3','teleA4','teleA5','teleA7','teleA8'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.disabled = !RUNTIME.telemetryManual;
+  });
+  document.getElementById('teleNote').textContent = RUNTIME.telemetryManual
+    ? 'โหมด Manual: ค่าที่ป้อนจะถูกตรึงไว้ — A1/A2/A6 ของแต่ละคอยล์, A5 (Air Flow) และ A8 (Fresh Air Temp) เข้าสมการ Room Temp/Humidity โดยตรง (A6 มากขึ้น = ถ่ายเทความร้อน/ลดความชื้นได้ดีขึ้น) ส่วน A3-A4, A7 เป็นค่าที่แสดงผลไว้ดูเฉยๆ ไม่ได้ป้อนกลับเข้าการคำนวณ'
+    : 'โหมด Auto: ระบบคำนวณ A1–A8 จากสถานะพลานท์จริงทุก tick';
+  persistRuntime();
+}
+function setTelemetryValue(key, val){
+  const n = parseFloat(val);
+  if(!isNaN(n)) SIM[key] = n;
+  recomputeTR();
+  updateTelemetry();
+  renderDiagnostics();
+}
+
+function testSteadyState(){
+  if(SIM.a1_cw1==null || SIM.a5==null || SIM.a8==null){
+    toast('ยังไม่มีค่า A1–A8 ให้ทดสอบ รอระบบคำนวณค่าเริ่มต้นก่อนสักครู่');
+    return;
+  }
+  const desiredMode = RUNTIME.controlSource==='manual' ? RUNTIME.manualMode : computeScheduledMode();
+  const resolved = resolveActiveStates(desiredMode);
+  const fanSpeedPct = SIM.humidityState==='trim' ? Math.min(resolved.baseFanPct, 55) : resolved.baseFanPct;
+
+  const adm = RUNTIME.admin;
+  const oaFrac = (adm.oaFraction ?? 15)/100;
+  const bfCW1 = adm.bfCW1 ?? 0.18, bfCW2 = adm.bfCW2 ?? 0.08;
+  const freshRH = adm.freshAirRH ?? 75;
+  const simMinutes = adm.simRate || 5;
+  const simHours = simMinutes/60;
+  const cfmForCalc = SIM.a5;
+  const m3s = cfmForCalc*0.000471947;
+  const massFlowKgS = m3s*1.2;
+  const qGainSens = adm.qSensibleGain ?? 15;
+  const qLatentGain = adm.qLatentGain ?? 6;
+  const cRoom = Math.max(1, adm.roomThermalMass ?? 8);
+  const roomAirMassKg = Math.max(100, adm.roomAirMass ?? 3600);
+  const chsC_cw1 = (SIM.a1_cw1-32)*5/9;
+  const chsC_cw2 = (SIM.a1_cw2-32)*5/9;
+  const cw1SpTest = PARAMS.precool.cw1Setpoint ?? PARAMS.supercool.cw1Setpoint ?? 14.5;
+  const cw2SpTest = PARAMS.operation.cw2Setpoint ?? PARAMS.supercool.cw2Setpoint ?? 14.5;
+  const adpBasisCW1 = (chsC_cw1 + cw1SpTest)/2;
+  const adpBasisCW2 = (chsC_cw2 + cw2SpTest)/2;
+
+  let temp = SIM.roomTemp;
+  let w = SIM.roomW ?? humidityRatioFromRH(SIM.roomTemp, SIM.roomHumidity);
+  const wFresh = humidityRatioFromRH(SIM.a8, freshRH);
+
+  for(let i=0;i<400;i++){
+    let tAir = oaFrac*SIM.a8 + (1-oaFrac)*temp;
+    let wAir = oaFrac*wFresh + (1-oaFrac)*w;
+    if(resolved.fanOn && resolved.cw1On){ const bf1=effectiveBF(bfCW1, coilFlowRatio('cw1')); const r=coilProcess(tAir,wAir,adpBasisCW1,bf1); tAir=r.t; wAir=r.w; }
+    if(resolved.fanOn && resolved.cw2On){ const bf2=effectiveBF(bfCW2, coilFlowRatio('cw2')); const r=coilProcess(tAir,wAir,adpBasisCW2,bf2); tAir=r.t; wAir=r.w; }
+    const tSupply = tAir+0.3;
+    const wSupply = wAir;
+    const qDeliverSens = resolved.fanOn ? 1.2*m3s*(temp-tSupply) : 0;
+    const dT = ((qGainSens - qDeliverSens)/cRoom)*simHours;
+    temp = Math.max(15, Math.min(38, temp+dT));
+    const moistureRemovedKgHr = resolved.fanOn ? massFlowKgS*3600*Math.max(0, w-wSupply) : 0;
+    const moistureGainKgHr = (qLatentGain*3600)/2501;
+    const dW = ((moistureGainKgHr - moistureRemovedKgHr)/roomAirMassKg)*simHours;
+    w = Math.max(0.002, w+dW);
+  }
+  const humidity = rhFromHumidityRatio(temp, w);
+
+  LAST_TEST_RESULT = {temp, w, humidity};
+
+  // Rough ETA for the LIVE simulation to naturally reach ~95% of the way to this steady state,
+  // given the current sim-rate (minutes simulated per 3s real tick).
+  const tauHours = cRoom / Math.max(0.05, 1.2*m3s); // thermal time-constant of the room
+  const etaSimHours = tauHours*3; // ~95% settled after ~3 time constants
+  const etaTicks = Math.max(1, Math.ceil((etaSimHours*60)/simMinutes));
+  const etaRealSeconds = etaTicks*3;
+  const etaText = etaRealSeconds < 90 ? `~${etaRealSeconds} วินาที` : `~${Math.round(etaRealSeconds/60)} นาที`;
+
+  document.getElementById('testResultBox').classList.remove('hidden');
+  document.getElementById('testResultText').innerHTML =
+    `Mode: <b style="color:var(--cyan)">${MODE_META[resolved.activeMode].name}</b> &middot; CW-1 ${resolved.cw1On?'<b style="color:var(--green)">ON</b>':'OFF'} &middot; CW-2 ${resolved.cw2On?'<b style="color:var(--green)">ON</b>':'OFF'} &middot; Fan ${resolved.fanOn?('VSD '+Math.round(fanSpeedPct)+'%'):'OFF'} &middot; A5=${Math.round(SIM.a5)} CFM<br>`
+    + `<span style="font-size:22px; font-weight:700; color:var(--amber);">${temp.toFixed(1)} &deg;C</span>`
+    + `<span style="color:var(--text-faint); margin:0 8px;">/</span>`
+    + `<span style="font-size:22px; font-weight:700; color:var(--cyan);">${humidity.toFixed(1)} %RH</span>`
+    + `<br><span class="dim" style="font-size:11px;">ค่าจริงบน Dashboard จะค่อยๆ ไล่มาเท่านี้เองตามเวลาจริง (ประมาณ ${etaText} ถ้าเงื่อนไขเดิมไม่เปลี่ยน) หรือกดปุ่มด้านล่างเพื่อ "กระโดด" ไปเลยทันที</span>`
+    + `<div style="margin-top:10px;"><span class="pill-btn active" style="border-color:var(--green); color:var(--green);" onclick="applyTestResult()">&#10003; นำผลลัพธ์นี้ไปใช้กับค่าจริงทันที</span></div>`;
+}
+function applyTestResult(){
+  if(!LAST_TEST_RESULT){ toast('ยังไม่มีผลทดสอบ กด "ทดสอบผลลัพธ์" ก่อน'); return; }
+  SIM.roomTemp = LAST_TEST_RESULT.temp;
+  SIM.roomW = LAST_TEST_RESULT.w;
+  SIM.roomHumidity = LAST_TEST_RESULT.humidity;
+  if(!RUNTIME.telemetryManual) SIM.a7 = SIM.roomTemp; // Return Temp tracks room temp — keep it in sync instantly, don't wait for the next tick
+  const resolved = resolveActiveStates(SIM.mode);
+  paintDashboard(resolved.activeMode, {cw1On:resolved.cw1On, cw2On:resolved.cw2On, fanOn:resolved.fanOn});
+  toast('อัปเดตค่า Room Temp/Humidity เป็นผลลัพธ์ steady-state แล้ว');
+}
+
+function updateRoomLoad(){
+  const rl = {
+    area: parseFloat(document.getElementById('loadArea').value) || 0,
+    occupancy: parseFloat(document.getElementById('loadOccupancy').value) || 0,
+    personSens: parseFloat(document.getElementById('loadPersonSens').value) || 0,
+    personLat: parseFloat(document.getElementById('loadPersonLat').value) || 0,
+    lighting: parseFloat(document.getElementById('loadLighting').value) || 0,
+    envelope: parseFloat(document.getElementById('loadEnvelope').value) || 0
+  };
+  RUNTIME.roomLoad = rl;
+  const qSens = (rl.occupancy*rl.personSens + rl.area*rl.lighting + rl.area*rl.envelope)/1000;
+  const qLat = (rl.occupancy*rl.personLat)/1000;
+  RUNTIME.admin.qSensibleGain = qSens;
+  RUNTIME.admin.qLatentGain = qLat;
+  document.getElementById('loadQSensOut').textContent = qSens.toFixed(2);
+  document.getElementById('loadQLatOut').textContent = qLat.toFixed(2);
+  const totalCoilKW = 32.34+51.88;
+  const warnEl = document.getElementById('loadWarning');
+  if(warnEl){
+    if(qSens > totalCoilKW){
+      warnEl.textContent = `⚠ Q Sensible (${qSens.toFixed(1)} kW) เกินกำลังทำความเย็นรวมของคอยล์ทั้งสองตัว (CW-1+CW-2 = ${totalCoilKW.toFixed(2)} kW) — แม้เปิด Super Cool ทั้งสองคอยล์ก็จะเอาไม่อยู่ Room Temp จะไม่มีวันลงถึง setpoint ลองลด Area/Occupancy หรือกลับไปที่ Auto Input สำหรับ A1–A8`;
+      warnEl.classList.remove('hidden');
+    } else {
+      warnEl.classList.add('hidden');
+    }
+  }
+  const admQS = document.getElementById('admQSens'); if(admQS) admQS.value = qSens.toFixed(2);
+  const admQL = document.getElementById('admQLat'); if(admQL) admQL.value = qLat.toFixed(2);
+  persistRuntime();
+}
+function resetRoomLoadDefaults(){
+  const d = defaultRuntime().roomLoad;
+  document.getElementById('loadArea').value = d.area;
+  document.getElementById('loadOccupancy').value = d.occupancy;
+  document.getElementById('loadPersonSens').value = d.personSens;
+  document.getElementById('loadPersonLat').value = d.personLat;
+  document.getElementById('loadLighting').value = d.lighting;
+  document.getElementById('loadEnvelope').value = d.envelope;
+  updateRoomLoad();
+  setTelemetrySource('auto'); // also release any manual A1-A8 overrides left over from testing
+  toast('รีเซ็ต Room Load และ A1–A8 กลับเป็นค่าเริ่มต้นแล้ว');
+}
+
+function renderModeBadges(){
+  const host = document.getElementById('modeBadges');
+  const items = [
+    {k:'precool', d:'CW-1 เปิด, พัดลมทำงานเต็มอัตรา 10,000 CFM (เตรียมความเย็นล่วงหน้า)'},
+    {k:'operation', d:'CW-2 เปิด, พัดลมทำงานเต็มอัตรา 10,000 CFM'},
+    {k:'supercool', d:'เปิดทั้ง CW-1 และ CW-2 พร้อมกันเพื่อลดอุณหภูมิเร็ว'},
+    {k:'auto', d:'สลับโหมดอัตโนมัติเพื่อรักษาอุณหภูมิที่ 14.5°C'}
+  ];
+  host.innerHTML = items.map(it=>{
+    const active = SIM.mode===it.k;
+    return `<div class="mode-badge ${active?'active':''}">
+      ${active?'<div class="mb-tag">ACTIVE</div>':''}
+      <div class="mb-title" style="color:${MODE_META[it.k].color}">${MODE_META[it.k].name}</div>
+      <div class="mb-desc">${it.d}</div>
+    </div>`;
+  }).join('');
+}
+
+function wavePath(x1,x2,y,amp){
+  const segs = Math.max(3, Math.round((x2-x1)/38));
+  const step = (x2-x1)/segs;
+  let d = `M${x1.toFixed(1)},${y}`;
+  for(let i=0;i<segs;i++){
+    const cx = x1+step*i+step/2;
+    const sign = i%2===0?-1:1;
+    const nx = x1+step*(i+1);
+    d += ` Q${cx.toFixed(1)},${(y+amp*sign).toFixed(1)} ${nx.toFixed(1)},${y}`;
+  }
+  return d;
+}
+function svgFins(xStart,xEnd,y,h,n,id){
+  let s = `<g id="${id}" style="color:#2A3945">`;
+  const step = (xEnd-xStart)/(n+1);
+  for(let i=1;i<=n;i++){
+    const x = (xStart+step*i).toFixed(1);
+    s += `<line x1="${x}" y1="${y+6}" x2="${x}" y2="${y+h-6}" stroke="currentColor" stroke-width="2.4"/>`;
+  }
+  s += `</g>`;
+  return s;
+}
+function svgHatch(x,y,w,h){
+  let s = `<g clip-path="url(#filterClip)">`;
+  for(let i=-2;i<=Math.ceil(w/9)+2;i++){
+    const bx = x+i*9;
+    s += `<line x1="${bx}" y1="${y+h}" x2="${bx+h}" y2="${y}" stroke="#2C3E4C" stroke-width="1.4"/>`;
+  }
+  s += `</g>`;
+  return s;
+}
+function callout(x,y,num,name){
+  return `<g>
+    <circle cx="${x}" cy="${y}" r="9" fill="#0B141C" stroke="#EF5350" stroke-width="1.2"/>
+    <text x="${x}" y="${y+3.2}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#EF5350">${num}</text>
+    <title>${num}. ${name}</title>
+  </g>`;
+}
+
+function renderSchematic(){
+  const filterX=220, filterW=75, coil1X=295, fanX=450, fanW=200;
+  const coilZoneW = fanX - coil1X;           // total width available for both coils
+  const CW1_SHARE=0.30, CW2_SHARE=0.70;       // CW-1 (32.34kW) vs CW-2 (51.88kW) capacity split
+  const coil1W = Math.round(coilZoneW*CW1_SHARE);
+  const coil2W = coilZoneW - coil1W;
+  const coil2X = coil1X + coil1W;
+  const casingTop=150, casingH=160, casingBot=casingTop+casingH;
+  const fanCx = fanX+95, fanCy = casingTop+casingH/2, fanR=42;
+
+  document.getElementById('schematicHost').innerHTML = `
+  <svg viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="filterClip"><rect x="${filterX}" y="${casingTop}" width="${filterW}" height="${casingH}"/></clipPath>
+      <style>
+        .lbl{font-family:'JetBrains Mono',monospace; font-size:10px; fill:#7C8DA0;}
+        .lbl-sm{font-family:'JetBrains Mono',monospace; font-size:8.5px; fill:#5C7385;}
+        .val{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;}
+        .duct{fill:none; stroke:#233542; stroke-width:9; stroke-linecap:round;}
+        .thin{fill:none; stroke:#2A3945; stroke-width:1.4;}
+        #fanBlades{transform-origin:${fanCx}px ${fanCy}px;}
+        .fanspin{animation:fanspin 1.3s linear infinite;}
+        @keyframes fanspin{to{transform:rotate(360deg);}}
+        @keyframes coilBlink{0%,100%{opacity:1;} 50%{opacity:0.3;}}
+        .blink{animation:coilBlink 1.1s ease-in-out infinite;}
+      </style>
+    </defs>
+
+    <!-- ===== Outer AHU casing ===== -->
+    <rect x="${filterX-70}" y="${casingTop}" width="${(fanX+fanW)-(filterX-70)}" height="${casingH}" rx="8" fill="#131F29" stroke="#233542" stroke-width="1.6"/>
+    <!-- section dividers -->
+    <line x1="${filterX}" y1="${casingTop}" x2="${filterX}" y2="${casingBot}" class="thin"/>
+    <line x1="${coil1X}" y1="${casingTop}" x2="${coil1X}" y2="${casingBot}" class="thin"/>
+    <line x1="${coil2X}" y1="${casingTop}" x2="${coil2X}" y2="${casingBot}" class="thin"/>
+    <line x1="${fanX}" y1="${casingTop}" x2="${fanX}" y2="${casingBot}" class="thin"/>
+
+    <!-- Mixing box -->
+    <text x="${filterX-64}" y="${(casingTop+casingBot)/2+4}" class="lbl-sm" transform="rotate(-90 ${filterX-64} ${(casingTop+casingBot)/2})">MIXING BOX</text>
+
+    <!-- R/A: fed directly by the return-air loop below, arrives flush at the casing wall -->
+    <text x="160" y="143" class="lbl-sm" fill="#93A6B5">R/A</text>
+
+    <!-- F/A: outdoor louver hood, flush against the casing wall (no floating stub) -->
+    <path d="M154,248 L154,266" stroke="#5C7385" stroke-width="2" fill="none"/>
+    <path d="M147,262 L161,262 L154,272 Z" fill="#5C7385"/>
+    <text x="154" y="240" text-anchor="middle" class="lbl-sm" fill="#93A6B5">F/A</text>
+    <rect x="95" y="270" width="55" height="34" rx="2" fill="#131F29" stroke="#233542"/>
+    ${[0,1,2,3,4].map(i=>`<line x1="${101+i*10}" y1="301" x2="${109+i*10}" y2="273" stroke="#2C3E4C" stroke-width="1.6"/>`).join('')}
+    <path class="duct" d="M150,287 L${filterX-70},287" stroke="#2A3945"/>
+    <text x="122" y="318" text-anchor="middle" class="lbl-sm">LOUVER</text>
+
+    <!-- Pre-filter: always working while air moves through the unit -->
+    <rect x="${filterX+6}" y="${casingTop+14}" width="${Math.round(filterW*0.4)}" height="${casingH-28}" rx="2" fill="#9C6B3E" opacity="0" id="filterGlow"/>
+    <rect x="${filterX}" y="${casingTop}" width="${filterW}" height="${casingH}" fill="none" stroke="#233542" id="filterBox"/>
+    <text x="${filterX+filterW/2}" y="${casingBot+20}" text-anchor="middle" class="lbl">FILTER</text>
+
+    <!-- Coil 1 (CW-1) — 32.34 kW, 30% of coil face area -->
+    ${svgFins(coil1X,coil1X+coil1W,casingTop,casingH,4,'coil1fins')}
+    <rect x="${coil1X}" y="${casingTop}" width="${coil1W}" height="${casingH}" fill="none" stroke="#233542" id="coil1box"/>
+    <text x="${coil1X+coil1W/2}" y="${casingBot+20}" text-anchor="middle" class="lbl">CW-1 &middot; 30%</text>
+    <text x="${coil1X+coil1W/2}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgCw1Label" fill="#7C8DA0">OFF</text>
+
+    <!-- Coil 2 (CW-2) — 51.88 kW, 70% of coil face area -->
+    ${svgFins(coil2X,coil2X+coil2W,casingTop,casingH,9,'coil2fins')}
+    <rect x="${coil2X}" y="${casingTop}" width="${coil2W}" height="${casingH}" fill="none" stroke="#233542" id="coil2box"/>
+    <text x="${coil2X+coil2W/2}" y="${casingBot+20}" text-anchor="middle" class="lbl">CW-2 &middot; 70%</text>
+    <text x="${coil2X+coil2W/2}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgCw2Label" fill="#7C8DA0">OFF</text>
+
+    <!-- Fan section -->
+    <rect x="${fanCx+52}" y="${casingTop+16}" width="46" height="30" rx="3" fill="#16232E" stroke="#233542"/>
+    <text x="${fanCx+75}" y="${casingTop+35}" text-anchor="middle" class="lbl-sm">MOTOR</text>
+    <line x1="${fanCx+52}" y1="${casingTop+31}" x2="${fanCx+fanR-4}" y2="${fanCy-8}" class="thin"/>
+    <circle cx="${fanCx}" cy="${fanCy}" r="${fanR}" fill="#16232E" stroke="#233542" stroke-width="2" id="fanHousing"/>
+    <g id="fanBlades">
+      <ellipse cx="${fanCx}" cy="${fanCy}" rx="${fanR-8}" ry="8" fill="none" stroke="#3A4E5C" stroke-width="3" id="fanBladeA"/>
+      <ellipse cx="${fanCx}" cy="${fanCy}" rx="8" ry="${fanR-8}" fill="none" stroke="#3A4E5C" stroke-width="3" id="fanBladeB"/>
+    </g>
+    <circle cx="${fanCx}" cy="${fanCy}" r="5" fill="#0B141C" stroke="#5C7385"/>
+    <text x="${fanCx}" y="${casingBot+20}" text-anchor="middle" class="lbl">EC FAN</text>
+    <text x="${fanCx}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgFanLabel" fill="#7C8DA0">OFF</text>
+
+    <text x="${filterX-68}" y="${casingTop-30}" class="lbl" fill="#E7EEF3" font-size="12" font-weight="700">AHU-01 &middot; 10,000 CFM</text>
+
+    <!-- ===== Airflow waves ===== -->
+    <path d="${wavePath(158,coil1X-2,casingTop+casingH/2,9)}" fill="none" stroke="#F0A93C" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake" opacity="0"/>
+    <path d="${wavePath(coil1X+4,fanX+fanW-15,casingTop+casingH/2,9)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCooled" opacity="0"/>
+
+    <!-- ===== Supply side ===== -->
+    <path d="M${fanX+fanW},${fanCy-30} L${fanX+fanW+45},${fanCy-14} L${fanX+fanW+45},${fanCy+14} L${fanX+fanW},${fanCy+30} Z" fill="#131F29" stroke="#233542"/>
+    <path id="ductToSupply" class="duct" d="M${fanX+fanW+45},${fanCy} L865,${fanCy}" stroke="#233542"/>
+    <path d="M735,${fanCy-7} L735,${fanCy+7} L751,${fanCy} Z" fill="#5C7385" id="supplyArrow"/>
+    <path id="ductS1" class="duct duct-flow" d="M700,${fanCy} L700,340" stroke="#233542"/>
+    <path id="ductS2" class="duct duct-flow" d="M790,${fanCy} L790,340" stroke="#233542"/>
+    <path id="ductS3" class="duct duct-flow" d="M860,${fanCy} L860,340" stroke="#233542"/>
+    ${[700,790,860].map(x=>`<path d="M${x-10},336 L${x+10},336 L${x},350 Z" fill="#35C7E0" id="vd${x}"/>`).join('')}
+    <text x="700" y="332" text-anchor="middle" class="lbl-sm">SAG</text>
+    <text x="790" y="332" text-anchor="middle" class="lbl-sm">SAG</text>
+    <text x="860" y="332" text-anchor="middle" class="lbl-sm">SAG</text>
+
+    <!-- ===== Room ===== -->
+    <rect x="650" y="352" width="270" height="100" rx="6" fill="#0F1B24" stroke="#233542"/>
+    <text x="664" y="374" class="lbl" font-size="11">ROOM / SUPPLY AIR DIFFUSER (SAD)</text>
+    <text x="664" y="396" class="lbl">ROOM TEMP</text>
+    <text x="664" y="414" class="val" id="svgRoomTemp" fill="#F0A93C" font-size="14">--.- &deg;C</text>
+    <text x="800" y="396" class="lbl">AIR FLOW</text>
+    <text x="906" y="414" text-anchor="end" class="val" id="svgFlowLabel" fill="#35C7E0" font-size="14">0 CFM</text>
+    <text x="664" y="434" class="lbl">ROOM HUMI</text>
+    <text x="664" y="450" class="val" id="svgRoomHumi" fill="#35C7E0" font-size="14">--.- %RH</text>
+
+    <!-- ===== Return air loop (flows right-to-left back to the unit) ===== -->
+    <path id="returnDuct" class="duct" d="M650,398 L60,398 L60,168 L${filterX-70},168" stroke="#233542"/>
+    <path d="M128,163 L148,168 L128,173 Z" fill="#5C7385" id="raArrow"/>
+    ${[140,230,320,410,500,590].map(x=>`<path d="M${x+9},392 L${x+9},404 L${x-9},398 Z" fill="#5C7385" id="radArrow${x}"/>`).join('')}
+    <path d="M53,300 L67,300 L60,284 Z" fill="#5C7385" id="radArrowUp"/>
+    <text x="330" y="416" text-anchor="middle" class="lbl">RETURN AIR (RAD)</text>
+
+    <!-- ===== Equipment callouts (per as-built legend) ===== -->
+    ${callout(filterX+filterW/2, casingTop-14, 9, 'PRE-FILTER G4 (EN779) MERV.8')}
+    ${callout(coil1X+coil1W/2, casingTop-14, 8, 'COOLING COIL-1 (3R) 50.26/32.34 kW')}
+    ${callout(coil2X+coil2W/2, casingTop-14, 7, 'COOLING COIL-2 (6R) 93.28/51.88 kW')}
+    ${callout(fanCx, casingTop-14, 6, 'EC-FAN (MOTOR IE5) 10,000 CFM')}
+    ${callout(760, fanCy-45, 10, 'SUPPLY AIR DUCT W/ INSULATION')}
+    ${callout(90, 150, 11, 'RETURN AIR DUCT W/ INSULATION')}
+    ${callout(90, casingBot+30, 12, 'FRESH AIR DUCT W/ VOLUME DAMPER')}
+    ${callout(filterX+10, casingBot+10, 13, 'CONDENSATE DRAIN PIPE W/ P-TRAP')}
+  </svg>`;
+}
+
+function updateSchematicState(states, activeMode){
+  const waveIntake = document.getElementById('waveIntake');
+  const waveCooled = document.getElementById('waveCooled');
+  if(waveIntake) waveIntake.setAttribute('opacity', states.fanOn ? '0.85' : '0');
+  if(waveCooled) waveCooled.setAttribute('opacity', states.fanOn ? '0.85' : '0');
+  const c1fins = document.getElementById('coil1fins');
+  const c2fins = document.getElementById('coil2fins');
+  const c1box = document.getElementById('coil1box');
+  const c2box = document.getElementById('coil2box');
+  if(c1fins){ c1fins.style.color = states.cw1On ? '#7ED4F5' : '#2A3945'; c1fins.classList.toggle('blink', states.cw1On); }
+  if(c2fins){ c2fins.style.color = states.cw2On ? '#0B6FA6' : '#2A3945'; c2fins.classList.toggle('blink', states.cw2On); }
+  if(c1box){ c1box.setAttribute('stroke', states.cw1On ? '#7ED4F5' : '#233542'); c1box.classList.toggle('blink', states.cw1On); }
+  if(c2box){ c2box.setAttribute('stroke', states.cw2On ? '#0B6FA6' : '#233542'); c2box.classList.toggle('blink', states.cw2On); }
+
+  // Filter is always working while air is moving through the unit
+  const filterGlow = document.getElementById('filterGlow');
+  if(filterGlow){
+    filterGlow.classList.toggle('blink', states.fanOn);
+    filterGlow.setAttribute('opacity', states.fanOn ? '0.28' : '0');
+  }
+  const filterBox = document.getElementById('filterBox');
+  if(filterBox) filterBox.setAttribute('stroke', states.fanOn ? '#9C6B3E' : '#233542');
+
+  const fanHousing = document.getElementById('fanHousing');
+  const fanBlades = document.getElementById('fanBlades');
+  if(fanHousing) fanHousing.setAttribute('fill', states.fanOn ? 'rgba(76,215,135,0.14)' : '#16232E');
+  if(fanBlades){
+    fanBlades.classList.toggle('fanspin', states.fanOn);
+    ['fanBladeA','fanBladeB'].forEach(id=>{
+      const b = document.getElementById(id);
+      if(b) b.setAttribute('stroke', states.fanOn ? '#4CD787' : '#3A4E5C');
+    });
+  }
+
+  const l1=document.getElementById('svgCw1Label'); if(l1){l1.textContent=states.cw1On?SIM.cw1Ret.toFixed(1)+'°C':'OFF'; l1.setAttribute('fill', states.cw1On?'#4CD787':'#7C8DA0');}
+  const l2=document.getElementById('svgCw2Label'); if(l2){l2.textContent=states.cw2On?SIM.cw2Ret.toFixed(1)+'°C':'OFF'; l2.setAttribute('fill', states.cw2On?'#4CD787':'#7C8DA0');}
+  const lf=document.getElementById('svgFanLabel'); if(lf){lf.textContent=states.fanOn?`VSD ${Math.round(SIM.fanSpeedPct)}%`:'OFF'; lf.setAttribute('fill', states.fanOn?'#4CD787':'#7C8DA0');}
+  const rt=document.getElementById('svgRoomTemp'); if(rt) rt.innerHTML=SIM.roomTemp.toFixed(1)+' &deg;C';
+  const rh=document.getElementById('svgRoomHumi'); if(rh){ rh.textContent=SIM.roomHumidity.toFixed(1)+' %RH'; rh.setAttribute('fill', SIM.humidityState==='boost' ? '#F0A93C' : '#35C7E0'); }
+  const fl=document.getElementById('svgFlowLabel'); if(fl) fl.textContent=Math.round(SIM.airflow).toLocaleString()+' CFM';
+
+  ['ductS1','ductS2','ductS3','ductToSupply'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.setAttribute('stroke', states.fanOn ? '#35C7E0' : '#233542');
+  });
+  const supplyArrow = document.getElementById('supplyArrow');
+  if(supplyArrow) supplyArrow.setAttribute('fill', states.fanOn ? '#35C7E0' : '#5C7385');
+  const rd = document.getElementById('returnDuct');
+  if(rd) rd.setAttribute('stroke', states.fanOn ? '#4CD787' : '#233542');
+  const ra = document.getElementById('raArrow');
+  if(ra) ra.setAttribute('fill', states.fanOn ? '#4CD787' : '#5C7385');
+  const raUp = document.getElementById('radArrowUp');
+  if(raUp) raUp.setAttribute('fill', states.fanOn ? '#4CD787' : '#5C7385');
+  [140,230,320,410,500,590].forEach(x=>{
+    const el = document.getElementById('radArrow'+x);
+    if(el) el.setAttribute('fill', states.fanOn ? '#4CD787' : '#5C7385');
+  });
+  [700,790,860].forEach(x=>{
+    const vd = document.getElementById('vd'+x);
+
+    if(vd) vd.setAttribute('fill', states.fanOn ? '#35C7E0' : '#3A4E5C');
+  });
+}
+
+/* ================= RENDER: PARAMS ================= */
+function paramField(mode, key, label, val, step){
+  return `<div class="form-row"><label>${label}</label><input type="number" step="${step||'0.1'}" value="${val}" onchange="updateParam('${mode}','${key}', this.value)"></div>`;
+}
+function paramToggle(mode, key, label, val){
+  return `<div class="form-row"><label>${label}</label><div class="toggle ${val?'on':''}" onclick="toggleParam('${mode}','${key}', this)"><div class="knob"></div></div></div>`;
+}
+function calcSettingBlock(mode){
+  const p = PARAMS[mode];
+  const reg = RUNTIME.regression[mode] || {coefTemp:null, coefHumi:null, r2Temp:0, r2Humi:0, n:0};
+  const nSamples = (RUNTIME.regressionSamples[mode]||[]).length;
+  const fmtCoef = (coef) => {
+    if(!coef) return '<span class="faint" style="font-size:10.5px;">ยังไม่ได้คำนวณ — สะสมข้อมูลแล้วกดปุ่มด้านล่าง</span>';
+    return '<span class="mono" style="font-size:10px; color:var(--text-dim); word-break:break-all; line-height:1.7;">'
+      + coef.map((c,i)=> i===0 ? c.toFixed(3) : `${c>=0?'+':''}${c.toFixed(4)}&middot;A${i}`).join(' ') + '</span>';
+  };
+  const r2Badge = (r2) => `<span class="tag ${r2>=0.8?'tag-green':'tag-amber'}">R&sup2; ${(r2*100).toFixed(1)}%</span>`;
+  return `
+    <details class="calc-setting">
+      <summary>Calculation Setting</summary>
+      <div class="form-row"><label>Room Temp Range (&deg;C)</label><div style="display:flex; gap:6px; align-items:center;">
+        <input type="number" step="0.1" value="${p.roomMin}" style="width:58px" onchange="updateParam('${mode}','roomMin', this.value)">
+        <span class="faint">&ndash;</span>
+        <input type="number" step="0.1" value="${p.roomMax}" style="width:58px" onchange="updateParam('${mode}','roomMax', this.value)">
+      </div></div>
+      <div class="form-row"><label>Humidity Range (%RH)</label><div style="display:flex; gap:6px; align-items:center;">
+        <input type="number" step="1" value="${p.humiMin}" style="width:58px" onchange="updateParam('${mode}','humiMin', this.value)">
+        <span class="faint">&ndash;</span>
+        <input type="number" step="1" value="${p.humiMax}" style="width:58px" onchange="updateParam('${mode}','humiMax', this.value)">
+      </div></div>
+      <div class="form-row"><label>EC Fan VSD Range (%)</label><div style="display:flex; gap:6px; align-items:center;">
+        <input type="number" step="1" value="${p.fanMin}" style="width:58px" onchange="updateParam('${mode}','fanMin', this.value)">
+        <span class="faint">&ndash;</span>
+        <input type="number" step="1" value="${p.fanMax}" style="width:58px" onchange="updateParam('${mode}','fanMax', this.value)">
+      </div></div>
+      <div class="small-note" style="margin-top:10px;">สมการถดถอย A1&ndash;A8 &rarr; ค่าที่คาดการณ์ (สะสมแล้ว n=${nSamples} ตัวอย่าง)</div>
+      <div style="margin-top:8px;">
+        <div class="dim" style="font-size:10.5px; margin-bottom:3px;">Room Temp (&deg;C) =<br>${fmtCoef(reg.coefTemp)}</div>
+        <div style="margin-top:4px;">${r2Badge(reg.r2Temp)}</div>
+      </div>
+      <div style="margin-top:12px;">
+        <div class="dim" style="font-size:10.5px; margin-bottom:3px;">Room Humidity (%RH) =<br>${fmtCoef(reg.coefHumi)}</div>
+        <div style="margin-top:4px;">${r2Badge(reg.r2Humi)}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:14px; width:100%;" onclick="fitRegressionForMode('${mode}')">คำนวณสมการใหม่จากข้อมูลจำลอง (Fit Regression)</button>
+    </details>`;
+}
+function renderParamCards(){
+  const host = document.getElementById('paramCards');
+  const p = PARAMS;
+  host.innerHTML = `
+    <div class="param-card">
+      <h3 style="color:var(--cyan)">1 &middot; Pre-Cool Mode (Standby)</h3>
+      <div class="pc-sub">เปิด CW-1 และพัดลมทำงานเต็มอัตรา เพื่อเตรียมความเย็นล่วงหน้าก่อนเข้าสู่โหมด Operation</div>
+      ${paramField('precool','cw1Setpoint','CW-1 Setpoint (°C)', p.precool.cw1Setpoint, '0.1')}
+      ${paramToggle('precool','cw1','CW-1 Valve Enabled', p.precool.cw1)}
+      ${paramToggle('precool','fan','พัดลม (Fan) ทำงาน', p.precool.fan)}
+      ${calcSettingBlock('precool')}
+    </div>
+    <div class="param-card">
+      <h3 style="color:var(--green)">2 &middot; Operation Mode</h3>
+      <div class="pc-sub">โหมดทำงานปกติ ใช้ CW-2 ปิดวาล์ว CW-1 พัดลมทำงานเต็มอัตรา</div>
+      ${paramField('operation','cw2Setpoint','CW-2 Setpoint (°C)', p.operation.cw2Setpoint, '0.1')}
+      ${paramToggle('operation','cw2','CW-2 Valve Enabled', p.operation.cw2)}
+      ${paramToggle('operation','fan','พัดลม (Fan) ทำงาน', p.operation.fan)}
+      ${calcSettingBlock('operation')}
+    </div>
+    <div class="param-card">
+      <h3 style="color:var(--amber)">3 &middot; Super Cool Mode</h3>
+      <div class="pc-sub">เปิดทั้ง CW-1 และ CW-2 พร้อมกัน สำหรับลดอุณหภูมิห้องอย่างรวดเร็ว</div>
+      ${paramField('supercool','cw1Setpoint','CW-1 Setpoint (°C)', p.supercool.cw1Setpoint, '0.1')}
+      ${paramField('supercool','cw2Setpoint','CW-2 Setpoint (°C)', p.supercool.cw2Setpoint, '0.1')}
+      ${paramToggle('supercool','fan','พัดลม (Fan) ทำงาน', p.supercool.fan)}
+      ${calcSettingBlock('supercool')}
+    </div>
+    <div class="param-card">
+      <h3 style="color:#c58cf0">4 &middot; Auto Mode</h3>
+      <div class="pc-sub">ระบบสลับระหว่าง Pre-Cool / Operation / Super Cool อัตโนมัติ เพื่อรักษาระดับที่ตั้งไว้</div>
+      ${paramField('auto','targetTemp','อุณหภูมิห้องเป้าหมาย (°C)', p.auto.targetTemp, '0.1')}
+      ${paramField('auto','tolerance','ช่วงเผื่อ Tolerance (±°C)', p.auto.tolerance, '0.1')}
+      ${paramField('auto','keepLevel','Keep Level CW (°C)', p.auto.keepLevel, '0.1')}
+      ${paramField('auto','opThreshold','เกณฑ์เข้า Operation (Δ°C)', p.auto.opThreshold, '0.1')}
+      ${paramField('auto','scThreshold','เกณฑ์เข้า Super Cool (Δ°C)', p.auto.scThreshold, '0.1')}
+      ${calcSettingBlock('auto')}
+    </div>
+  `;
+}
+function updateParam(mode,key,val){ PARAMS[mode][key] = parseFloat(val); }
+function toggleParam(mode,key,el){
+  PARAMS[mode][key] = !PARAMS[mode][key];
+  el.classList.toggle('on', PARAMS[mode][key]);
+}
+async function saveAllParams(){
+  await sSet('params', PARAMS);
+  toast('บันทึกพารามิเตอร์เรียบร้อย');
+}
+
+/* ================= RENDER: SCHEDULE ================= */
+function renderDayPicker(){
+  const host = document.getElementById('dayPicker');
+  host.innerHTML = DAY_ORDER.map(d=>`<span class="day-chip ${SELECTED_DAYS.has(d)?'on':''}" onclick="toggleDay('${d}', this)">${DAY_LABELS[d]}</span>`).join('');
+}
+function toggleDay(d, el){
+  if(SELECTED_DAYS.has(d)) SELECTED_DAYS.delete(d); else SELECTED_DAYS.add(d);
+  el.classList.toggle('on');
+}
+async function addScheduleEntry(){
+  const mode = document.getElementById('schMode').value;
+  const start = document.getElementById('schStart').value;
+  const end = document.getElementById('schEnd').value;
+  if(!SELECTED_DAYS.size){ toast('กรุณาเลือกอย่างน้อย 1 วัน'); return; }
+  SCHEDULE.push({id:'s'+Date.now(), mode, start, end, days:Array.from(SELECTED_DAYS), enabled:true});
+  await sSet('schedule', SCHEDULE);
+  renderSchedule();
+  toast('เพิ่มรายการตารางเวลาแล้ว');
+}
+async function removeScheduleEntry(id){
+  SCHEDULE = SCHEDULE.filter(s=>s.id!==id);
+  await sSet('schedule', SCHEDULE);
+  renderSchedule();
+}
+async function toggleScheduleEnabled(id){
+  const e = SCHEDULE.find(s=>s.id===id);
+  if(e){ e.enabled = !e.enabled; await sSet('schedule', SCHEDULE); renderSchedule(); }
+}
+function renderSchedule(){
+  const tbody = document.getElementById('scheduleTable');
+  document.getElementById('scheduleEmpty').classList.toggle('hidden', SCHEDULE.length>0);
+  tbody.innerHTML = SCHEDULE.map(e=>{
+    const meta = MODE_META[e.mode];
+    const daysTxt = e.days.map(d=>DAY_LABELS[d]).join(' ');
+    return `<tr>
+      <td><span class="tag ${meta.tagclass}">${meta.name}</span></td>
+      <td class="mono">${e.start} &ndash; ${e.end}</td>
+      <td class="mono">${daysTxt}</td>
+      <td><span class="pill-btn ${e.enabled?'active':''}" style="padding:4px 10px; font-size:10.5px;" onclick="toggleScheduleEnabled('${e.id}')">${e.enabled?'เปิดใช้งาน':'ปิดใช้งาน'}</span></td>
+      <td><button class="icon-btn" onclick="removeScheduleEntry('${e.id}')">&times;</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ================= RENDER: REPORTS ================= */
+let modeChart=null, energyChart=null;
+function renderReports(){
+  document.getElementById('rEnergyTotal').textContent = (RUNTIME.energyKWhTotal||0).toFixed(2);
+  const totalSec = Object.values(RUNTIME.modeSeconds||{}).reduce((a,b)=>a+b,0);
+  document.getElementById('rHoursTotal').textContent = (totalSec/3600).toFixed(1);
+  document.getElementById('rSwitchCount').textContent = RUNTIME.modeSwitchCount||0;
+  let top='-', topv=-1;
+  Object.entries(RUNTIME.modeSeconds||{}).forEach(([k,v])=>{ if(v>topv){topv=v; top=MODE_META[k].name;} });
+  document.getElementById('rTopMode').textContent = topv>0 ? top : '-';
+
+  const ctx1 = document.getElementById('chartModeHours').getContext('2d');
+  const labels = ['precool','operation','supercool','auto'];
+  const hours = labels.map(k=> ((RUNTIME.modeSeconds[k]||0)/3600));
+  if(modeChart) modeChart.destroy();
+  modeChart = new Chart(ctx1, {
+    type:'bar',
+    data:{labels:labels.map(k=>MODE_META[k].name), datasets:[{label:'ชั่วโมง', data:hours, backgroundColor:['#35C7E0','#4CD787','#F0A93C','#c58cf0']}]},
+    options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93A6B5', font:{family:'JetBrains Mono'}}, grid:{color:'#1A2830'}}, y:{ticks:{color:'#93A6B5'}, grid:{color:'#1A2830'}}}}
+  });
+
+  const days = Object.keys(RUNTIME.energyDaily||{}).sort().slice(-14);
+  const vals = days.map(d=>RUNTIME.energyDaily[d]);
+  const ctx2 = document.getElementById('chartEnergyDaily').getContext('2d');
+  if(energyChart) energyChart.destroy();
+  energyChart = new Chart(ctx2, {
+    type:'line',
+    data:{labels:days, datasets:[{label:'kWh', data:vals, borderColor:'#35C7E0', backgroundColor:'rgba(53,199,224,0.12)', fill:true, tension:0.3}]},
+    options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93A6B5', font:{size:10}}, grid:{color:'#1A2830'}}, y:{ticks:{color:'#93A6B5'}, grid:{color:'#1A2830'}}}}
+  });
+
+  const evtBody = document.getElementById('eventLogTable');
+  document.getElementById('eventLogEmpty').classList.toggle('hidden', (RUNTIME.events||[]).length>0);
+  evtBody.innerHTML = (RUNTIME.events||[]).slice(0,20).map(e=>{
+    const meta = MODE_META[e.mode]||{name:'-',tagclass:'tag-grey'};
+    return `<tr><td class="mono">${new Date(e.ts).toLocaleTimeString('th-TH')}</td><td>${e.text}</td><td><span class="tag ${meta.tagclass}">${meta.name}</span></td></tr>`;
+  }).join('');
+}
+async function resetRuntime(){
+  if(!confirm('ยืนยันการล้างข้อมูลสถิติการทำงานทั้งหมด?')) return;
+  RUNTIME = defaultRuntime();
+  await sSet('runtime', RUNTIME);
+  renderReports();
+  toast('รีเซ็ตข้อมูลสถิติแล้ว');
+}
+async function persistRuntime(){ await sSet('runtime', RUNTIME); }
+
+/* ================= RENDER: ADMIN ================= */
+function renderAdminUsers(){
+  const tbody = document.getElementById('userTable');
+  tbody.innerHTML = USERS.map(u=>`
+    <tr>
+      <td class="mono">${u.username}</td>
+      <td>${u.fullname||'-'}</td>
+      <td>
+        <select class="role-select" onchange="changeUserRole('${u.username}', this.value)" ${u.username===CURRENT_USER.username?'disabled':''}>
+          <option value="operator" ${u.role==='operator'?'selected':''}>Operator</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+        </select>
+      </td>
+      <td>${u.username===CURRENT_USER.username?'<span class="faint mono" style="font-size:10.5px;">(คุณ)</span>':`<button class="icon-btn" onclick="deleteUser('${u.username}')">&times;</button>`}</td>
+    </tr>
+  `).join('');
+}
+async function changeUserRole(username, role){
+  const u = USERS.find(x=>x.username===username);
+  if(u){ u.role=role; await sSet('users', USERS); toast('อัปเดตสิทธิ์ผู้ใช้งานแล้ว'); }
+}
+async function deleteUser(username){
+  if(!confirm(`ลบผู้ใช้งาน ${username}?`)) return;
+  USERS = USERS.filter(u=>u.username!==username);
+  await sSet('users', USERS);
+  renderAdminUsers();
+}
+async function saveAdminConfig(){
+  RUNTIME.admin = {
+    project: document.getElementById('admProject').value,
+    roomTarget: parseFloat(document.getElementById('admRoomTarget').value),
+    roomTol: parseFloat(document.getElementById('admRoomTol').value),
+    humiditySetpoint: parseFloat(document.getElementById('admHumiditySetpoint').value),
+    simRate: parseFloat(document.getElementById('admSimRate').value),
+    qSensibleGain: RUNTIME.admin.qSensibleGain,
+    qLatentGain: RUNTIME.admin.qLatentGain,
+    roomThermalMass: parseFloat(document.getElementById('admCRoom').value),
+    roomAirMass: parseFloat(document.getElementById('admAirMass').value),
+    oaFraction: parseFloat(document.getElementById('admOaFrac').value),
+    freshAirRH: parseFloat(document.getElementById('admFreshRH').value),
+    bfCW1: parseFloat(document.getElementById('admBfCw1').value),
+    bfCW2: parseFloat(document.getElementById('admBfCw2').value),
+    designTRcw1: parseFloat(document.getElementById('admDesignTRcw1').value),
+    designTRcw2: parseFloat(document.getElementById('admDesignTRcw2').value),
+    returnLoadRise: parseFloat(document.getElementById('admReturnRise').value)
+  };
+  await sSet('runtime', RUNTIME);
+  toast('บันทึกการตั้งค่าระบบแล้ว');
+}
+
+/* ================= INIT ================= */
+(async function init(){
+  await seedUsersIfNeeded();
+})();
+</script>
+</body>
+</html>
