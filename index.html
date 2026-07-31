@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PSD_iAHU SMART CONTROL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
 :root{
@@ -28,6 +28,32 @@
   --font-sans:'IBM Plex Sans Thai','IBM Plex Sans', sans-serif;
   --radius:6px;
 }
+/* ---------- THEME VARIANTS ---------- */
+body[data-theme="ocean"]{
+  --bg:#071019; --panel:#0D1C2B; --panel2:#112436; --elevated:#16304A;
+  --border:#1D3A52; --border-soft:#142A3D; --cyan:#3FCFFF; --cyan-dim:#1D7FA6;
+  --green:#3FE0A0; --amber:#FFB648; --red:#FF6B6B; --bg-grid:rgba(63,207,255,0.045);
+}
+body[data-theme="graphite"]{
+  --bg:#121214; --panel:#1B1B1E; --panel2:#222225; --elevated:#2A2A2E;
+  --border:#333338; --border-soft:#28282C; --cyan:#8FA8FF; --cyan-dim:#5C6EBF;
+  --green:#7FE08A; --amber:#F2B94A; --red:#F0685E; --text:#EDEDEF; --bg-grid:rgba(143,168,255,0.04);
+}
+/* ---------- FONT VARIANTS ---------- */
+body[data-font="inter"]{
+  --font-mono:'Roboto Mono','JetBrains Mono', monospace;
+  --font-sans:'Noto Sans Thai','Inter', sans-serif;
+}
+body[data-font="roboto"]{
+  --font-mono:'Roboto Mono', monospace;
+  --font-sans:'Noto Sans Thai','Roboto', sans-serif;
+}
+/* ---------- FONT SIZE VARIANTS ---------- */
+:root{--ui-zoom:1;}
+body[data-size="sm"]{--ui-zoom:0.88;}
+body[data-size="md"]{--ui-zoom:1;}
+body[data-size="lg"]{--ui-zoom:1.18;}
+body[data-size="xl"]{--ui-zoom:1.35;}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
@@ -39,6 +65,7 @@ body{
   font-family:var(--font-sans);
   min-height:100vh;
   -webkit-font-smoothing:antialiased;
+  zoom:var(--ui-zoom);
 }
 ::selection{background:var(--cyan-dim); color:#fff;}
 button{font-family:inherit;}
@@ -197,9 +224,21 @@ a{color:var(--cyan);}
 .diag-item.warn .diag-title{color:var(--amber);}
 .diag-item.critical .diag-title{color:var(--red);}
 .diag-detail{font-size:11.5px; color:var(--text-dim); margin-top:3px; line-height:1.5;}
+.modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px;}
+.modal-box{background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:24px; width:100%; max-width:480px; max-height:85vh; overflow-y:auto;}
+.modal-title{font-family:var(--font-mono); font-size:15px; font-weight:700; margin-bottom:18px;}
+.settings-group{margin-bottom:18px;}
+.settings-label{font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.6px; font-family:var(--font-mono); margin-bottom:8px;}
+.settings-row{display:flex; gap:8px; flex-wrap:wrap;}
+.theme-swatch{display:flex; align-items:center; gap:7px; padding:9px 12px; border-radius:6px; border:1px solid var(--border); background:var(--panel2); color:var(--text-dim); font-size:12px; cursor:pointer; flex:1; min-width:120px; justify-content:center;}
+.theme-swatch:hover{border-color:var(--text-faint);}
+.theme-swatch.active{border-color:var(--cyan); color:var(--cyan); background:rgba(53,199,224,0.08);}
+.sw-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
 @media(max-width:820px){.tele-grid{grid-template-columns:1fr 1fr;}}
 .duct-flow{stroke-dasharray:6 6; animation:flowmove 1s linear infinite;}
 @keyframes flowmove{to{stroke-dashoffset:-24;}}
+.arrow-flow{animation:arrowflow 1.8s linear infinite; transform-box:fill-box; transform-origin:center;}
+@keyframes arrowflow{0%{transform:translateX(0); opacity:0;} 10%{opacity:1;} 85%{opacity:1;} 100%{transform:translateX(90px); opacity:0;}}
 .readout-box{font-family:var(--font-mono);}
 .readout-box .rv{font-weight:700;}
 
@@ -318,6 +357,7 @@ tr:last-child td{border-bottom:none;}
     <div class="nav-item" data-screen="schedule" onclick="switchScreen('schedule')"><span class="nav-num">03</span><span class="dot"></span>Schedule</div>
     <div class="nav-item" data-screen="reports" onclick="switchScreen('reports')"><span class="nav-num">04</span><span class="dot"></span>Reports &amp; Energy</div>
     <div class="nav-item hidden" id="navAdmin" data-screen="admin" onclick="switchScreen('admin')"><span class="nav-num">05</span><span class="dot"></span>Admin</div>
+    <div class="nav-item" onclick="openSettings()"><span class="nav-num">&#9881;</span><span class="dot" style="background:transparent;"></span>ตั้งค่า (Settings)</div>
 
     <div class="sidebar-foot">
       <div class="user-chip">
@@ -340,7 +380,10 @@ tr:last-child td{border-bottom:none;}
           <h1>ภาพรวมระบบ &middot; AHU-01</h1>
           <div class="subtitle">BITEC BURI &nbsp;/&nbsp; งานติดตั้งเครื่องปรับอากาศ (AHU) &nbsp;/&nbsp; อ้างอิงแบบ AC-D-01</div>
         </div>
-        <div class="status-pill" id="topStatusPill" class="mono"><span class="blip"></span><span id="topStatusText">-</span></div>
+        <div class="top-actions">
+          <button class="btn btn-ghost btn-sm" id="exportGifBtn" onclick="exportDashboardGif()">&#128247; Export GIF</button>
+          <div class="status-pill" id="topStatusPill" class="mono"><span class="blip"></span><span id="topStatusText">-</span></div>
+        </div>
       </div>
 
       <div class="grid grid-cols-4">
@@ -402,11 +445,32 @@ tr:last-child td{border-bottom:none;}
           <div class="legend-item"><span class="legend-num">12</span>Fresh air duct w/ volume damper</div>
           <div class="legend-item"><span class="legend-num">13</span>Condensate drain pipe w/ P-trap</div>
         </div>
+      </div>
+
+      <div class="section-title">DIAGNOSTICS &middot; วิเคราะห์สาเหตุ (Root Cause Analysis)</div>
+      <div class="panel">
+        <div class="small-note" style="margin-bottom:10px;">วิเคราะห์อัตโนมัติทุก tick จาก TR แต่ละคอยล์เทียบ Design, Air Flow, Pressure Drop, และ A7 Return Temp เทียบกับ Setpoint+Load — ใช้แทนการเดาสาเหตุหน้างาน</div>
+        <div id="diagnosticsList"></div>
+      </div>
+
+    </section>
+
+    <!-- ============ SCREEN 2: PARAMETERS ============ -->
+    <section id="screen-params" class="hidden">
+      <div class="topbar">
+        <div><h1>ตั้งค่าพารามิเตอร์แต่ละโหมด</h1><div class="subtitle">Mode Parameters &middot; ค่าที่ตั้งจะมีผลต่อการจำลองการทำงานทันที</div></div>
+        <button class="btn btn-solid" onclick="saveAllParams()">บันทึกพารามิเตอร์ทั้งหมด</button>
+      </div>
+      <div class="grid grid-cols-2" id="paramCards"></div>
+
+      <div class="section-title">Mode Setting Parameter</div>
+      <div class="schematic-wrap">
         <div class="tele-grid-header">
           <div class="tele-grid-title">A1&ndash;A8 MACHINE PARAMETERS</div>
-          <div style="display:flex; gap:6px;">
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <span class="pill-btn" id="teleAutoBtn" onclick="setTelemetrySource('auto')">Auto Input</span>
             <span class="pill-btn" id="teleManualBtn" onclick="setTelemetrySource('manual')">Manual Input</span>
+            <span class="pill-btn" onclick="resetTelemetryDefaults()">&#8635; ค่าเริ่มต้น A1&ndash;A8</span>
             <span class="pill-btn" style="border-color:var(--green); color:var(--green);" onclick="testSteadyState()">&#9654; ทดสอบผลลัพธ์</span>
           </div>
         </div>
@@ -458,22 +522,6 @@ tr:last-child td{border-bottom:none;}
         <div class="small-note" style="margin-top:8px;">Q<sub>sensible</sub> = (Occupancy&times;W<sub>sens</sub> + Area&times;Lighting + Area&times;Envelope) &divide; 1000 &middot; Q<sub>latent</sub> = (Occupancy&times;W<sub>lat</sub>) &divide; 1000 &middot; ค่าที่คำนวณได้จะแทนที่ Q Sensible/Latent Gain ใน Physics Engine โดยอัตโนมัติทุกครั้งที่แก้ไข</div>
         <div id="loadWarning" class="small-note hidden" style="color:var(--red); margin-top:6px;"></div>
       </div>
-
-      <div class="section-title">DIAGNOSTICS &middot; วิเคราะห์สาเหตุ (Root Cause Analysis)</div>
-      <div class="panel">
-        <div class="small-note" style="margin-bottom:10px;">วิเคราะห์อัตโนมัติทุก tick จาก TR แต่ละคอยล์เทียบ Design, Air Flow, Pressure Drop, และ A7 Return Temp เทียบกับ Setpoint+Load — ใช้แทนการเดาสาเหตุหน้างาน</div>
-        <div id="diagnosticsList"></div>
-      </div>
-
-    </section>
-
-    <!-- ============ SCREEN 2: PARAMETERS ============ -->
-    <section id="screen-params" class="hidden">
-      <div class="topbar">
-        <div><h1>ตั้งค่าพารามิเตอร์แต่ละโหมด</h1><div class="subtitle">Mode Parameters &middot; ค่าที่ตั้งจะมีผลต่อการจำลองการทำงานทันที</div></div>
-        <button class="btn btn-solid" onclick="saveAllParams()">บันทึกพารามิเตอร์ทั้งหมด</button>
-      </div>
-      <div class="grid grid-cols-2" id="paramCards"></div>
     </section>
 
     <!-- ============ SCREEN 3: SCHEDULE ============ -->
@@ -582,6 +630,42 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="settingsOverlay" onclick="if(event.target===this) closeSettings()">
+  <div class="modal-box">
+    <div class="modal-title">ตั้งค่า (Settings)</div>
+
+    <div class="settings-group">
+      <div class="settings-label">Theme</div>
+      <div class="settings-row">
+        <div class="theme-swatch" data-theme="slate" onclick="setTheme('slate')"><span class="sw-dot" style="background:#35C7E0;"></span>Slate (Default)</div>
+        <div class="theme-swatch" data-theme="ocean" onclick="setTheme('ocean')"><span class="sw-dot" style="background:#3FCFFF;"></span>Ocean</div>
+        <div class="theme-swatch" data-theme="graphite" onclick="setTheme('graphite')"><span class="sw-dot" style="background:#8FA8FF;"></span>Graphite</div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-label">Font</div>
+      <div class="settings-row">
+        <div class="theme-swatch" data-font="default" onclick="setFontChoice('default')">JetBrains / IBM Plex</div>
+        <div class="theme-swatch" data-font="inter" onclick="setFontChoice('inter')">Inter / Roboto Mono</div>
+        <div class="theme-swatch" data-font="roboto" onclick="setFontChoice('roboto')">Roboto</div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-label">ขนาดตัวหนังสือ (Font Size)</div>
+      <div class="settings-row">
+        <div class="theme-swatch" data-size="sm" onclick="setFontSize('sm')">เล็ก (S)</div>
+        <div class="theme-swatch" data-size="md" onclick="setFontSize('md')">ปกติ (M)</div>
+        <div class="theme-swatch" data-size="lg" onclick="setFontSize('lg')">ใหญ่ (L)</div>
+        <div class="theme-swatch" data-size="xl" onclick="setFontSize('xl')">ใหญ่มาก (XL)</div>
+      </div>
+    </div>
+
+    <button class="btn btn-solid btn-block" style="margin-top:18px;" onclick="closeSettings()">เสร็จสิ้น</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -596,6 +680,103 @@ async function sSet(key, value){
   try{ await window.storage.set(key, JSON.stringify(value), true); }catch(e){ console.error('storage set failed', key, e); }
 }
 
+function ensureGifLib(){
+  return new Promise((resolve,reject)=>{
+    if(window.GIF){ resolve(); return; }
+    const s = document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js';
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error('failed to load gif.js'));
+    document.body.appendChild(s);
+  });
+}
+function loadImageFromSvgString(svgString, width, height){
+  return new Promise((resolve,reject)=>{
+    const blob = new Blob([svgString], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload=()=>{ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror=(e)=>{ URL.revokeObjectURL(url); reject(e); };
+    img.width=width; img.height=height;
+    img.src=url;
+  });
+}
+async function exportDashboardGif(){
+  const svgEl = document.querySelector('#schematicHost svg');
+  if(!svgEl){ toast('ไม่พบไดอะแกรมให้ export'); return; }
+  const btn = document.getElementById('exportGifBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ กำลังสร้าง GIF...'; }
+  toast('กำลังสร้าง GIF ภาพเคลื่อนไหว... กรุณารอสักครู่ (ห้ามปิดหน้าต่าง)');
+  try{
+    await ensureGifLib();
+    const width=1000, height=460;
+    const geom = window.SCHEMATIC_GEOM || {fanCx:600, fanCy:230};
+    const fanOn = document.getElementById('svgFanLabel') && document.getElementById('svgFanLabel').textContent.trim()!=='OFF';
+    const gif = new GIF({workers:2, quality:8, width, height, workerScript:'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'});
+    const frameCount = 24;
+    const cycleMs = 2400;
+    const frameDelay = Math.round(cycleMs/frameCount);
+
+    for(let i=0;i<frameCount;i++){
+      const t = i*frameDelay;
+      const clone = svgEl.cloneNode(true);
+
+      // Bake fan rotation (CSS animation doesn't survive serialization, so compute it manually)
+      const fanBlades = clone.querySelector('#fanBlades');
+      if(fanBlades && fanOn){
+        const angle = (t/1300*360)%360;
+        fanBlades.setAttribute('transform', `rotate(${angle.toFixed(1)} ${geom.fanCx} ${geom.fanCy})`);
+      }
+      // Bake duct/wave flow dash offset
+      clone.querySelectorAll('.duct-flow').forEach(el=>{
+        const offset = -((t/1000*24)%24);
+        el.style.strokeDashoffset = offset.toFixed(1);
+      });
+      // Bake moving arrows
+      clone.querySelectorAll('.arrow-flow').forEach((el,idx)=>{
+        const delayMs = idx*500;
+        const local = ((t+delayMs)%1800)/1800;
+        const tx = local*90;
+        const op = local<0.1 ? local/0.1 : (local>0.85 ? (1-local)/0.15 : 1);
+        el.setAttribute('transform', `translate(${tx.toFixed(1)},0)`);
+        el.style.opacity = Math.max(0,Math.min(1,op)).toFixed(2);
+      });
+      // Bake coil/filter blink opacity
+      clone.querySelectorAll('.blink').forEach(el=>{
+        const phase = (t%1100)/1100;
+        const op = 1 - 0.35*Math.abs(Math.sin(phase*Math.PI));
+        if(el.getAttribute('opacity')!=='0') el.style.opacity = op.toFixed(2);
+      });
+
+      const svgString = new XMLSerializer().serializeToString(clone);
+      const img = await loadImageFromSvgString(svgString, width, height);
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg') || '#0B141C';
+      ctx.fillRect(0,0,width,height);
+      ctx.drawImage(img, 0, 0, width, height);
+      gif.addFrame(canvas, {delay:frameDelay, copy:true});
+    }
+
+    gif.on('finished', function(blob){
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'PSD_iAHU_Dashboard.gif';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast('ดาวน์โหลด GIF สำเร็จแล้ว!');
+      if(btn){ btn.disabled=false; btn.innerHTML='&#128247; Export GIF'; }
+    });
+    gif.render();
+  }catch(err){
+    console.error('GIF export failed', err);
+    toast('สร้าง GIF ไม่สำเร็จ — เบราว์เซอร์อาจไม่รองรับ ลองใหม่อีกครั้ง');
+    if(btn){ btn.disabled=false; btn.innerHTML='&#128247; Export GIF'; }
+  }
+}
+
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -604,16 +785,42 @@ function toast(msg){
   window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
 }
 
+/* ================= UI SETTINGS (theme / font / size) — personal, not shared ================= */
+let UI_PREFS = {theme:'slate', font:'default', size:'md'};
+async function loadUiPrefs(){
+  try{
+    const r = await window.storage.get('uiPrefs', false);
+    if(r) UI_PREFS = JSON.parse(r.value);
+  }catch(e){ /* no saved prefs yet, use defaults */ }
+  applyUiPrefs();
+}
+function applyUiPrefs(){
+  document.body.setAttribute('data-theme', UI_PREFS.theme==='slate' ? '' : UI_PREFS.theme);
+  document.body.setAttribute('data-font', UI_PREFS.font==='default' ? '' : UI_PREFS.font);
+  document.body.setAttribute('data-size', UI_PREFS.size);
+  document.querySelectorAll('.theme-swatch[data-theme]').forEach(el=>el.classList.toggle('active', el.dataset.theme===UI_PREFS.theme));
+  document.querySelectorAll('.theme-swatch[data-font]').forEach(el=>el.classList.toggle('active', el.dataset.font===UI_PREFS.font));
+  document.querySelectorAll('.theme-swatch[data-size]').forEach(el=>el.classList.toggle('active', el.dataset.size===UI_PREFS.size));
+}
+async function saveUiPrefs(){
+  try{ await window.storage.set('uiPrefs', JSON.stringify(UI_PREFS), false); }catch(e){ console.error('failed to save ui prefs', e); }
+}
+function openSettings(){ document.getElementById('settingsOverlay').classList.remove('hidden'); applyUiPrefs(); }
+function closeSettings(){ document.getElementById('settingsOverlay').classList.add('hidden'); }
+function setTheme(t){ UI_PREFS.theme=t; applyUiPrefs(); saveUiPrefs(); }
+function setFontChoice(f){ UI_PREFS.font=f; applyUiPrefs(); saveUiPrefs(); }
+function setFontSize(s){ UI_PREFS.size=s; applyUiPrefs(); saveUiPrefs(); }
+
 /* ================= DEFAULT DATA ================= */
 function defaultParams(){
   return {
     precool:  { label:'Pre-Cool Mode', cw1Setpoint:14.5, cw2Setpoint:null, cw1:true, cw2:false, fan:true,
                 roomMin:24, roomMax:25, humiMin:65, humiMax:75, fanMin:50, fanMax:60 },
-    operation:{ label:'Operation Mode', cw1Setpoint:null, cw2Setpoint:14.5, cw1:false, cw2:true, fan:true,
+    operation:{ label:'Operation Mode', cw1Setpoint:null, cw2Setpoint:12.0, cw1:false, cw2:true, fan:true,
                 roomMin:21, roomMax:23, humiMin:60, humiMax:70, fanMin:70, fanMax:80 },
-    supercool:{ label:'Super Cool Mode', cw1Setpoint:14.5, cw2Setpoint:14.5, cw1:true, cw2:true, fan:true,
+    supercool:{ label:'Super Cool Mode', cw1Setpoint:12.0, cw2Setpoint:12.0, cw1:true, cw2:true, fan:true,
                 roomMin:19, roomMax:20, humiMin:60, humiMax:70, fanMin:80, fanMax:90 },
-    auto:     { label:'Auto Mode', keepLevel:14.5, targetTemp:25, tolerance:2, opThreshold:0.5, scThreshold:3.0, fan:true,
+    auto:     { label:'Auto Mode', keepLevel:12.0, targetTemp:25, tolerance:2, opThreshold:0.5, scThreshold:3.0, fan:true,
                 roomMin:22, roomMax:24, humiMin:60, humiMax:70, fanMin:50, fanMax:80 }
   };
 }
@@ -1181,8 +1388,11 @@ function paintDashboard(activeMode, states){
   document.getElementById('mRoomTol').textContent = RUNTIME.admin.roomTol.toFixed(1);
   document.getElementById('mRoomHumi').textContent = SIM.roomHumidity.toFixed(1);
   document.getElementById('mHumiTarget').textContent = Math.round(RUNTIME.admin.humiditySetpoint ?? 60);
+  const tempWithinBand = Math.abs(SIM.roomTemp - RUNTIME.admin.roomTarget) <= RUNTIME.admin.roomTol;
+  document.getElementById('mRoomTemp').style.color = tempWithinBand ? 'var(--green)' : 'var(--amber)';
   const humiEl = document.getElementById('mRoomHumi');
-  humiEl.style.color = SIM.humidityState==='boost' ? 'var(--amber)' : (SIM.humidityState==='trim' ? 'var(--cyan)' : 'var(--text-dim)');
+  const humiWithinBand = SIM.roomHumidity <= (RUNTIME.admin.humiditySetpoint ?? 60);
+  humiEl.style.color = humiWithinBand ? 'var(--green)' : 'var(--amber)';
   const roomPct = Math.max(0, Math.min(100, ((SIM.roomTemp-15)/(35-15))*100));
   document.getElementById('mRoomBar').style.width = roomPct+'%';
   const overloadEl = document.getElementById('mOverloadWarn');
@@ -1457,6 +1667,17 @@ function updateRoomLoad(){
   const admQL = document.getElementById('admQLat'); if(admQL) admQL.value = qLat.toFixed(2);
   persistRuntime();
 }
+function resetTelemetryDefaults(){
+  RUNTIME.telemetryManual = true;
+  SIM.a1_cw1 = 43.7; SIM.a2_cw1 = 53.7; SIM.a6_cw1 = 23.0;
+  SIM.a1_cw2 = 43.4; SIM.a2_cw2 = 53.4; SIM.a6_cw2 = 54.0;
+  SIM.a3 = 55.0; SIM.a4 = 50.0;
+  setTelemetrySource('manual');
+  recomputeTR();
+  updateTelemetry();
+  renderDiagnostics();
+  toast('ตั้งค่า A1–A8 กลับเป็นค่าเริ่มต้นแล้ว (โหมด Manual)');
+}
 function resetRoomLoadDefaults(){
   const d = defaultRuntime().roomLoad;
   document.getElementById('loadArea').value = d.area;
@@ -1536,6 +1757,7 @@ function renderSchematic(){
   const coil2X = coil1X + coil1W;
   const casingTop=150, casingH=160, casingBot=casingTop+casingH;
   const fanCx = fanX+95, fanCy = casingTop+casingH/2, fanR=42;
+  window.SCHEMATIC_GEOM = {fanCx, fanCy};
 
   document.getElementById('schematicHost').innerHTML = `
   <svg viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg">
@@ -1596,9 +1818,6 @@ function renderSchematic(){
     <text x="${coil2X+coil2W/2}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgCw2Label" fill="#7C8DA0">OFF</text>
 
     <!-- Fan section -->
-    <rect x="${fanCx+52}" y="${casingTop+16}" width="46" height="30" rx="3" fill="#16232E" stroke="#233542"/>
-    <text x="${fanCx+75}" y="${casingTop+35}" text-anchor="middle" class="lbl-sm">MOTOR</text>
-    <line x1="${fanCx+52}" y1="${casingTop+31}" x2="${fanCx+fanR-4}" y2="${fanCy-8}" class="thin"/>
     <circle cx="${fanCx}" cy="${fanCy}" r="${fanR}" fill="#16232E" stroke="#233542" stroke-width="2" id="fanHousing"/>
     <g id="fanBlades">
       <ellipse cx="${fanCx}" cy="${fanCy}" rx="${fanR-8}" ry="8" fill="none" stroke="#3A4E5C" stroke-width="3" id="fanBladeA"/>
@@ -1610,14 +1829,18 @@ function renderSchematic(){
 
     <text x="${filterX-68}" y="${casingTop-30}" class="lbl" fill="#E7EEF3" font-size="12" font-weight="700">AHU-01 &middot; 10,000 CFM</text>
 
-    <!-- ===== Airflow waves ===== -->
-    <path d="${wavePath(158,coil1X-2,casingTop+casingH/2,9)}" fill="none" stroke="#F0A93C" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake" opacity="0"/>
-    <path d="${wavePath(coil1X+4,fanX+fanW-15,casingTop+casingH/2,9)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCooled" opacity="0"/>
+    <!-- ===== Airflow waves: orange (intake, before filter) -> green (through CW-1/CW-2) -> blue (after coils to fan) ===== -->
+    <path d="${wavePath(158,filterX-2,casingTop+casingH/2-14,7)}" fill="none" stroke="#F0A93C" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake1" opacity="0"/>
+    <path d="${wavePath(158,filterX-2,casingTop+casingH/2,7)}" fill="none" stroke="#F0A93C" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake2" opacity="0"/>
+    <path d="${wavePath(158,filterX-2,casingTop+casingH/2+14,7)}" fill="none" stroke="#F0A93C" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake3" opacity="0"/>
+    <path d="${wavePath(filterX+2,fanX-2,casingTop+casingH/2,8)}" fill="none" stroke="#4CD787" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCoil" opacity="0"/>
+    <path d="${wavePath(fanX+2,fanX+fanW-15,casingTop+casingH/2,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCooled" opacity="0"/>
 
     <!-- ===== Supply side ===== -->
     <path d="M${fanX+fanW},${fanCy-30} L${fanX+fanW+45},${fanCy-14} L${fanX+fanW+45},${fanCy+14} L${fanX+fanW},${fanCy+30} Z" fill="#131F29" stroke="#233542"/>
     <path id="ductToSupply" class="duct" d="M${fanX+fanW+45},${fanCy} L865,${fanCy}" stroke="#233542"/>
-    <path d="M735,${fanCy-7} L735,${fanCy+7} L751,${fanCy} Z" fill="#5C7385" id="supplyArrow"/>
+    <path d="M735,${fanCy-7} L735,${fanCy+7} L751,${fanCy} Z" fill="#5C7385" id="supplyArrow" class="arrow-flow"/>
+    <path d="M780,${fanCy-6} L780,${fanCy+6} L792,${fanCy} Z" fill="#5C7385" id="supplyArrow2" class="arrow-flow" style="animation-delay:0.5s;"/>
     <path id="ductS1" class="duct duct-flow" d="M700,${fanCy} L700,340" stroke="#233542"/>
     <path id="ductS2" class="duct duct-flow" d="M790,${fanCy} L790,340" stroke="#233542"/>
     <path id="ductS3" class="duct duct-flow" d="M860,${fanCy} L860,340" stroke="#233542"/>
@@ -1656,10 +1879,10 @@ function renderSchematic(){
 }
 
 function updateSchematicState(states, activeMode){
-  const waveIntake = document.getElementById('waveIntake');
-  const waveCooled = document.getElementById('waveCooled');
-  if(waveIntake) waveIntake.setAttribute('opacity', states.fanOn ? '0.85' : '0');
-  if(waveCooled) waveCooled.setAttribute('opacity', states.fanOn ? '0.85' : '0');
+  ['waveIntake1','waveIntake2','waveIntake3','waveCoil','waveCooled'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.setAttribute('opacity', states.fanOn ? '0.85' : '0');
+  });
   const c1fins = document.getElementById('coil1fins');
   const c2fins = document.getElementById('coil2fins');
   const c1box = document.getElementById('coil1box');
@@ -1692,8 +1915,18 @@ function updateSchematicState(states, activeMode){
   const l1=document.getElementById('svgCw1Label'); if(l1){l1.textContent=states.cw1On?SIM.cw1Ret.toFixed(1)+'°C':'OFF'; l1.setAttribute('fill', states.cw1On?'#4CD787':'#7C8DA0');}
   const l2=document.getElementById('svgCw2Label'); if(l2){l2.textContent=states.cw2On?SIM.cw2Ret.toFixed(1)+'°C':'OFF'; l2.setAttribute('fill', states.cw2On?'#4CD787':'#7C8DA0');}
   const lf=document.getElementById('svgFanLabel'); if(lf){lf.textContent=states.fanOn?`VSD ${Math.round(SIM.fanSpeedPct)}%`:'OFF'; lf.setAttribute('fill', states.fanOn?'#4CD787':'#7C8DA0');}
-  const rt=document.getElementById('svgRoomTemp'); if(rt) rt.innerHTML=SIM.roomTemp.toFixed(1)+' &deg;C';
-  const rh=document.getElementById('svgRoomHumi'); if(rh){ rh.textContent=SIM.roomHumidity.toFixed(1)+' %RH'; rh.setAttribute('fill', SIM.humidityState==='boost' ? '#F0A93C' : '#35C7E0'); }
+  const rt=document.getElementById('svgRoomTemp');
+  if(rt){
+    rt.innerHTML=SIM.roomTemp.toFixed(1)+' &deg;C';
+    const withinTemp = Math.abs(SIM.roomTemp - RUNTIME.admin.roomTarget) <= RUNTIME.admin.roomTol;
+    rt.setAttribute('fill', withinTemp ? '#4CD787' : '#F0A93C');
+  }
+  const rh=document.getElementById('svgRoomHumi');
+  if(rh){
+    rh.textContent=SIM.roomHumidity.toFixed(1)+' %RH';
+    const withinHumi = SIM.roomHumidity <= (RUNTIME.admin.humiditySetpoint ?? 60);
+    rh.setAttribute('fill', withinHumi ? '#4CD787' : '#F0A93C');
+  }
   const fl=document.getElementById('svgFlowLabel'); if(fl) fl.textContent=Math.round(SIM.airflow).toLocaleString()+' CFM';
 
   ['ductS1','ductS2','ductS3','ductToSupply'].forEach(id=>{
@@ -1702,6 +1935,8 @@ function updateSchematicState(states, activeMode){
   });
   const supplyArrow = document.getElementById('supplyArrow');
   if(supplyArrow) supplyArrow.setAttribute('fill', states.fanOn ? '#35C7E0' : '#5C7385');
+  const supplyArrow2 = document.getElementById('supplyArrow2');
+  if(supplyArrow2) supplyArrow2.setAttribute('fill', states.fanOn ? '#35C7E0' : '#5C7385');
   const rd = document.getElementById('returnDuct');
   if(rd) rd.setAttribute('stroke', states.fanOn ? '#4CD787' : '#233542');
   const ra = document.getElementById('raArrow');
@@ -1959,6 +2194,7 @@ async function saveAdminConfig(){
 
 /* ================= INIT ================= */
 (async function init(){
+  await loadUiPrefs();
   await seedUsersIfNeeded();
 })();
 </script>
