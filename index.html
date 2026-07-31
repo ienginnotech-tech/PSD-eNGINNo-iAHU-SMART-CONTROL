@@ -1253,9 +1253,9 @@ function quickRepaint(){
   const cw2Sp = getCw2Setpoint(resolved.activeMode);
   SIM.cw1Ret = resolved.cw1On ? cw1Sp : cw1Sp+9;
   SIM.cw2Ret = resolved.cw2On ? cw2Sp : cw2Sp+9;
-  if(!RUNTIME.telemetryManual){
-    SIM.a5 = SIM.airflow;
-  }
+  // A5 always follows the mode's real VSD-driven CFM on a mode switch — even in Manual — so it
+  // can never be left stale/forgotten. Still editable afterward if you want to test a different flow.
+  SIM.a5 = SIM.airflow;
 
   // Jump Room Temp/Humidity straight to the new steady state for this mode — this only runs on an
   // actual mode CHANGE (not on repeated clicks of the same mode), so it can't cause runaway drift.
@@ -1592,8 +1592,14 @@ function updateTelemetry(){
   const a7Hint = document.getElementById('teleA7expected');
   if(a7Hint) a7Hint.textContent = `(คาดหวัง \u2248${expectedA7.toFixed(1)}\u00b0C)`;
 }
+const DEFAULT_TELEMETRY = {a1_cw1:43.7, a2_cw1:53.7, a6_cw1:23.0, a1_cw2:43.4, a2_cw2:53.4, a6_cw2:54.0, a3:55.0, a4:50.0};
+function applyDefaultTelemetryValues(){
+  Object.keys(DEFAULT_TELEMETRY).forEach(k=>{ SIM[k] = DEFAULT_TELEMETRY[k]; });
+}
 function setTelemetrySource(src){
+  const enteringManual = (src==='manual') && !RUNTIME.telemetryManual;
   RUNTIME.telemetryManual = (src==='manual');
+  if(enteringManual) applyDefaultTelemetryValues(); // A2=A1+10°F, A6=23/54 GPM, A3=55/A4=50 Psig — every time you switch into Manual
   document.getElementById('teleAutoBtn').classList.toggle('active', !RUNTIME.telemetryManual);
   document.getElementById('teleManualBtn').classList.toggle('active', RUNTIME.telemetryManual);
   ['teleA1cw1','teleA2cw1','teleA6cw1','teleA1cw2','teleA2cw2','teleA6cw2','teleA3','teleA4','teleA5','teleA7','teleA8'].forEach(id=>{
@@ -1603,6 +1609,7 @@ function setTelemetrySource(src){
   document.getElementById('teleNote').textContent = RUNTIME.telemetryManual
     ? 'โหมด Manual: ค่าที่ป้อนจะถูกตรึงไว้ — A1/A2/A6 ของแต่ละคอยล์, A5 (Air Flow) และ A8 (Fresh Air Temp) เข้าสมการ Room Temp/Humidity โดยตรง (A6 มากขึ้น = ถ่ายเทความร้อน/ลดความชื้นได้ดีขึ้น) ส่วน A3-A4, A7 เป็นค่าที่แสดงผลไว้ดูเฉยๆ ไม่ได้ป้อนกลับเข้าการคำนวณ'
     : 'โหมด Auto: ระบบคำนวณ A1–A8 จากสถานะพลานท์จริงทุก tick';
+  if(enteringManual){ recomputeTR(); updateTelemetry(); }
   persistRuntime();
 }
 function setTelemetryValue(key, val){
@@ -1730,9 +1737,7 @@ function updateRoomLoad(){
 }
 function resetTelemetryDefaults(){
   RUNTIME.telemetryManual = true;
-  SIM.a1_cw1 = 43.7; SIM.a2_cw1 = 53.7; SIM.a6_cw1 = 23.0;
-  SIM.a1_cw2 = 43.4; SIM.a2_cw2 = 53.4; SIM.a6_cw2 = 54.0;
-  SIM.a3 = 55.0; SIM.a4 = 50.0;
+  applyDefaultTelemetryValues();
   setTelemetrySource('manual');
   recomputeTR();
   updateTelemetry();
