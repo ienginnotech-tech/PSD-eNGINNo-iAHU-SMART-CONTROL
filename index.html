@@ -1891,12 +1891,14 @@ function renderSchematic(){
     <rect x="${coil1X}" y="${casingTop}" width="${coil1W}" height="${casingH}" fill="none" stroke="#233542" id="coil1box"/>
     <text x="${coil1X+coil1W/2}" y="${casingBot+20}" text-anchor="middle" class="lbl">CW-1 &middot; 30%</text>
     <text x="${coil1X+coil1W/2}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgCw1Label" fill="#7C8DA0">OFF</text>
+    <text x="${coil1X+coil1W/2}" y="${casingBot+46}" text-anchor="middle" class="lbl-sm" id="svgCw1LabelF">--</text>
 
     <!-- Coil 2 (CW-2) — 51.88 kW, 70% of coil face area -->
     ${svgFins(coil2X,coil2X+coil2W,casingTop,casingH,7,'coil2fins')}
     <rect x="${coil2X}" y="${casingTop}" width="${coil2W}" height="${casingH}" fill="none" stroke="#233542" id="coil2box"/>
     <text x="${coil2X+coil2W/2}" y="${casingBot+20}" text-anchor="middle" class="lbl">CW-2 &middot; 70%</text>
     <text x="${coil2X+coil2W/2}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgCw2Label" fill="#7C8DA0">OFF</text>
+    <text x="${coil2X+coil2W/2}" y="${casingBot+46}" text-anchor="middle" class="lbl-sm" id="svgCw2LabelF">--</text>
 
     <!-- Fan section -->
     <circle cx="${fanCx}" cy="${fanCy}" r="${fanR}" fill="#16232E" stroke="#233542" stroke-width="2" id="fanHousing"/>
@@ -1942,6 +1944,7 @@ function renderSchematic(){
     <text x="664" y="374" class="lbl" font-size="11">ROOM / SUPPLY AIR DIFFUSER (SAD)</text>
     <text x="664" y="396" class="lbl">ROOM TEMP</text>
     <text x="664" y="414" class="val" id="svgRoomTemp" fill="#F0A93C" font-size="14">--.- &deg;C</text>
+    <text x="664" y="426" class="lbl-sm" id="svgRoomTempF">&asymp; -- &deg;F</text>
     <text x="800" y="396" class="lbl">AIR FLOW</text>
     <text x="906" y="414" text-anchor="end" class="val" id="svgFlowLabel" fill="#35C7E0" font-size="14">0 CFM</text>
     <text x="664" y="434" class="lbl">ROOM HUMI</text>
@@ -2016,7 +2019,9 @@ function updateSchematicState(states, activeMode){
   }
 
   const l1=document.getElementById('svgCw1Label'); if(l1){l1.textContent=states.cw1On?SIM.cw1Ret.toFixed(1)+'°C':'OFF'; l1.setAttribute('fill', states.cw1On?'#4CD787':'#7C8DA0');}
+  const l1f=document.getElementById('svgCw1LabelF'); if(l1f) l1f.textContent = states.cw1On ? (SIM.cw1Ret*9/5+32).toFixed(1)+' °F' : '--';
   const l2=document.getElementById('svgCw2Label'); if(l2){l2.textContent=states.cw2On?SIM.cw2Ret.toFixed(1)+'°C':'OFF'; l2.setAttribute('fill', states.cw2On?'#4CD787':'#7C8DA0');}
+  const l2f=document.getElementById('svgCw2LabelF'); if(l2f) l2f.textContent = states.cw2On ? (SIM.cw2Ret*9/5+32).toFixed(1)+' °F' : '--';
   const lf=document.getElementById('svgFanLabel'); if(lf){lf.textContent=states.fanOn?`VSD ${Math.round(SIM.fanSpeedPct)}%`:'OFF'; lf.setAttribute('fill', states.fanOn?'#4CD787':'#7C8DA0');}
   const rt=document.getElementById('svgRoomTemp');
   const bandParams2 = PARAMS[activeMode] || PARAMS.precool;
@@ -2025,6 +2030,7 @@ function updateSchematicState(states, activeMode){
     const withinTemp = SIM.roomTemp >= bandParams2.roomMin && SIM.roomTemp <= bandParams2.roomMax;
     rt.setAttribute('fill', withinTemp ? '#4CD787' : '#F0A93C');
   }
+  const rtf=document.getElementById('svgRoomTempF'); if(rtf) rtf.textContent = '\u2248 '+(SIM.roomTemp*9/5+32).toFixed(1)+' \u00b0F';
   const rh=document.getElementById('svgRoomHumi');
   if(rh){
     rh.textContent=SIM.roomHumidity.toFixed(1)+' %RH';
