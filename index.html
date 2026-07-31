@@ -402,8 +402,16 @@ tr:last-child td{border-bottom:none;}
           <div class="m-label">Room Temperature / Humidity</div>
           <div class="m-value"><span id="mRoomTemp">0.0</span><span class="m-unit">&deg;C</span><span style="color:var(--text-faint); font-size:16px; margin:0 2px;">/</span><span id="mRoomHumi" style="color:var(--cyan)">0</span><span class="m-unit">%RH</span></div>
           <div class="m-sub" id="mSetpointLabel">Setpoint --</div>
-          <div id="mOverloadWarn" class="hidden" style="color:var(--red); font-size:10.5px; font-family:var(--font-mono); margin-top:5px;">&#9888; โหลดความร้อนเกินกำลังทำความเย็น ณ ขณะนี้ &mdash; ตรวจสอบ Room Load Inputs</div>
-          <div class="m-bar"><div class="m-bar-fill" id="mRoomBar" style="width:0%; background:var(--amber);"></div></div>
+          <div id="mOverloadWarn" class="hidden" style="font-size:10.5px; font-family:var(--font-mono); margin-top:5px;"></div>
+          <div class="m-bar" style="position:relative;">
+            <div class="m-bar-zone" id="mRoomBarZone" style="position:absolute; top:0; height:100%; background:rgba(76,215,135,0.28); left:0%; width:0%; border-radius:2px;"></div>
+            <div class="m-bar-fill" id="mRoomBar" style="width:0%; background:var(--amber);"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-faint); font-family:var(--font-mono); margin-top:4px;">
+            <span>15&deg;C</span>
+            <span id="mRoomBarScaleLabel">--</span>
+            <span>35&deg;C</span>
+          </div>
         </div>
         <div class="metric">
           <div class="m-label">CW-1 Chilled Water (32.34 kW)</div>
@@ -870,10 +878,10 @@ function defaultParams(){
     precool:  { label:'Pre-Cool Mode', cw1Setpoint:14.5, cw2Setpoint:null, cw1:true, cw2:false, fan:true,
                 roomMin:24, roomMax:25, humiMin:65, humiMax:75, fanMin:50, fanMax:60 },
     operation:{ label:'Operation Mode', cw1Setpoint:null, cw2Setpoint:12.0, cw1:false, cw2:true, fan:true,
-                roomMin:21, roomMax:23, humiMin:60, humiMax:70, fanMin:70, fanMax:80 },
+                roomMin:21, roomMax:23, humiMin:50, humiMax:60, fanMin:70, fanMax:80 },
     supercool:{ label:'Super Cool Mode', cw1Setpoint:12.0, cw2Setpoint:12.0, cw1:true, cw2:true, fan:true,
-                roomMin:19, roomMax:20, humiMin:60, humiMax:70, fanMin:80, fanMax:90 },
-    auto:     { label:'Auto Mode', keepLevel:12.0, targetTemp:25, tolerance:2, opThreshold:0.5, scThreshold:3.0, fan:true,
+                roomMin:19, roomMax:20, humiMin:70, humiMax:75, fanMin:80, fanMax:90 },
+    auto:     { label:'Auto Mode', keepLevel:12.0, targetTemp:22, tolerance:2, opThreshold:0.5, scThreshold:3.0, fan:true,
                 roomMin:22, roomMax:24, humiMin:60, humiMax:70, fanMin:50, fanMax:80 }
   };
 }
@@ -1199,6 +1207,10 @@ const RATED_GPM_CW2 = (51.88/(4.19*5))*15.85; // ≈ 39.2 GPM
 // leaving air, better dehumidification too); less flow = worse. Only kicks in when telemetry is manually
 // overridden — in Auto the valve is assumed fully open at rated flow (ratio = 1, no change from before).
 function coilFlowRatio(coilId){
+  if(SIM.mode==='auto'){
+    const pct = coilId==='cw1' ? (SIM.cw1ValvePct ?? 100) : (SIM.cw2ValvePct ?? 100);
+    return Math.max(0.2, pct/100);
+  }
   if(!RUNTIME.telemetryManual) return 1;
   const gpm = coilId==='cw1' ? SIM.a6_cw1 : SIM.a6_cw2;
   if(gpm==null) return 1;
@@ -1218,30 +1230,55 @@ function recomputeTR(){
 function getCw1Setpoint(mode){
   if(mode==='precool') return PARAMS.precool.cw1Setpoint ?? 14.5;
   if(mode==='supercool') return PARAMS.supercool.cw1Setpoint ?? 14.5;
+  if(mode==='auto') return PARAMS.auto.keepLevel ?? 14.5;
   return PARAMS.precool.cw1Setpoint ?? PARAMS.supercool.cw1Setpoint ?? 14.5;
 }
 function getCw2Setpoint(mode){
   if(mode==='operation') return PARAMS.operation.cw2Setpoint ?? 14.5;
   if(mode==='supercool') return PARAMS.supercool.cw2Setpoint ?? 14.5;
+  if(mode==='auto') return PARAMS.auto.keepLevel ?? 14.5;
   return PARAMS.operation.cw2Setpoint ?? PARAMS.supercool.cw2Setpoint ?? 14.5;
 }
 function resolveActiveStates(mode){
   // Pure: decides which coils/fan should be active for a given mode, without mutating SIM or logging.
   let activeMode = mode;
   const humiditySetpoint = RUNTIME.admin.humiditySetpoint ?? 60;
+  let cw1On, cw2On, fanOn, baseFanPct, cw1Pct, cw2Pct;
+
   if(mode==='auto'){
+    activeMode = 'auto';
     const p = PARAMS.auto;
-    const dev = SIM.roomTemp - p.targetTemp;
+    const tempDev = SIM.roomTemp - p.targetTemp;
     const humiDev = SIM.roomHumidity - humiditySetpoint;
-    if(dev > p.scThreshold || humiDev > 10) activeMode = 'supercool';
-    else if(dev > p.opThreshold || humiDev > 3) activeMode = 'operation';
-    else activeMode = 'precool';
+
+    // CW-2 controls TEMPERATURE: full open while well above setpoint, throttles down in steps
+    // as it approaches — floors at 65% rather than closing, so Auto always keeps some cooling authority.
+    if(tempDev > 3) cw2Pct = 100;
+    else if(tempDev > 2) cw2Pct = 85;
+    else if(tempDev > 1) cw2Pct = 75;
+    else cw2Pct = 65;
+    cw2On = true;
+
+    // CW-1 controls HUMIDITY: only opens when humidity is above setpoint, staged by how far over;
+    // once humidity is back at/below setpoint, it closes fully (0%) — no continuous minimum like CW-2.
+    if(humiDev > 10) cw1Pct = 100;
+    else if(humiDev > 6) cw1Pct = 85;
+    else if(humiDev > 3) cw1Pct = 75;
+    else if(humiDev > 0) cw1Pct = 65;
+    else cw1Pct = 0;
+    cw1On = cw1Pct > 0;
+
+    fanOn = p.fan !== false;
+    baseFanPct = p.fanMin!=null ? (p.fanMin+p.fanMax)/2 : 100;
+  } else {
+    cw1On = activeMode==='precool' ? PARAMS.precool.cw1 : (activeMode==='supercool' ? PARAMS.supercool.cw1 : false);
+    cw2On = activeMode==='operation' ? PARAMS.operation.cw2 : (activeMode==='supercool' ? PARAMS.supercool.cw2 : false);
+    fanOn = activeMode==='precool' ? PARAMS.precool.fan : (activeMode==='operation'?PARAMS.operation.fan:(activeMode==='supercool'?PARAMS.supercool.fan:true));
+    baseFanPct = PARAMS[activeMode] && PARAMS[activeMode].fanMin!=null ? (PARAMS[activeMode].fanMin+PARAMS[activeMode].fanMax)/2 : 100;
+    cw1Pct = cw1On ? 100 : 0;
+    cw2Pct = cw2On ? 100 : 0;
   }
-  const cw1On = activeMode==='precool' ? PARAMS.precool.cw1 : (activeMode==='supercool' ? PARAMS.supercool.cw1 : false);
-  const cw2On = activeMode==='operation' ? PARAMS.operation.cw2 : (activeMode==='supercool' ? PARAMS.supercool.cw2 : false);
-  const fanOn = activeMode==='precool' ? PARAMS.precool.fan : (activeMode==='operation'?PARAMS.operation.fan:(activeMode==='supercool'?PARAMS.supercool.fan:true));
-  const baseFanPct = PARAMS[activeMode] && PARAMS[activeMode].fanMin!=null ? (PARAMS[activeMode].fanMin+PARAMS[activeMode].fanMax)/2 : 100;
-  return {activeMode, cw1On, cw2On, fanOn, baseFanPct};
+  return {activeMode, cw1On, cw2On, fanOn, baseFanPct, cw1Pct, cw2Pct};
 }
 
 function quickRepaint(){
@@ -1258,12 +1295,14 @@ function quickRepaint(){
   }
   const resolved = resolveActiveStates(SIM.mode);
   SIM.autoSub = resolved.activeMode;
+  SIM.cw1ValvePct = resolved.cw1Pct;
+  SIM.cw2ValvePct = resolved.cw2Pct;
   SIM.fanSpeedPct = SIM.humidityState==='trim' ? Math.min(resolved.baseFanPct, 55) : resolved.baseFanPct;
 
   // snap fast actuators to their new target instead of waiting for the easing in runSimTick
   SIM.airflow = resolved.fanOn ? 10000*(SIM.fanSpeedPct/100) : 0;
-  SIM.cw1Util = resolved.cw1On ? 100 : 0;
-  SIM.cw2Util = resolved.cw2On ? 100 : 0;
+  SIM.cw1Util = resolved.cw1Pct;
+  SIM.cw2Util = resolved.cw2Pct;
   const cw1Sp = getCw1Setpoint(resolved.activeMode);
   const cw2Sp = getCw2Setpoint(resolved.activeMode);
   SIM.cw1Ret = resolved.cw1On ? cw1Sp : cw1Sp+9;
@@ -1326,7 +1365,7 @@ function runSimTick(){
     SIM.humidityState = 'boost';
   }
   if(SIM.humidityState !== prevHumidState){
-    if(SIM.humidityState==='boost') logEvent('ความชื้นสูงเกินค่าตั้ง — จับตาดูใกล้ชิด (Auto จะเลือกโหมดที่แรงขึ้นให้เอง)', SIM.mode);
+    if(SIM.humidityState==='boost') logEvent('ความชื้นสูงเกินค่าตั้ง — จับตาดูใกล้ชิด (ถ้าอยู่ Auto, CW-1 จะเปิดวาล์วเพิ่มให้เอง)', SIM.mode);
     if(SIM.humidityState==='trim') logEvent('ความชื้นเข้าสู่การควบคุม — ลดความเร็วพัดลมลงเพื่อลดความชื้นต่อเนื่อง', SIM.mode);
     if(SIM.humidityState==='idle') logEvent('ความชื้นเป็นปกติแล้ว', SIM.mode);
   }
@@ -1341,8 +1380,10 @@ function runSimTick(){
   if(SIM.airflow < 15) SIM.airflow = 0;
 
   // CW utilization ramps
-  SIM.cw1Util += ((cw1On?100:0) - SIM.cw1Util)*0.3;
-  SIM.cw2Util += ((cw2On?100:0) - SIM.cw2Util)*0.3;
+  SIM.cw1ValvePct = resolved.cw1Pct;
+  SIM.cw2ValvePct = resolved.cw2Pct;
+  SIM.cw1Util += ((cw1On?resolved.cw1Pct:0) - SIM.cw1Util)*0.3;
+  SIM.cw2Util += ((cw2On?resolved.cw2Pct:0) - SIM.cw2Util)*0.3;
   const cw1Sp = getCw1Setpoint(activeMode);
   const cw2Sp = getCw2Setpoint(activeMode);
   SIM.cw1Ret += ((cw1On? cw1Sp : cw1Sp+9) - SIM.cw1Ret)*0.25;
@@ -1464,12 +1505,31 @@ function paintDashboard(activeMode, states){
   const humiEl = document.getElementById('mRoomHumi');
   const humiWithinBand = SIM.roomHumidity >= bandParams.humiMin && SIM.roomHumidity <= bandParams.humiMax;
   humiEl.style.color = humiWithinBand ? 'var(--green)' : 'var(--amber)';
+  const scaleMin=15, scaleMax=35;
+  const zoneLeft = Math.max(0, Math.min(100, ((bandParams.roomMin-scaleMin)/(scaleMax-scaleMin))*100));
+  const zoneRight = Math.max(0, Math.min(100, ((bandParams.roomMax-scaleMin)/(scaleMax-scaleMin))*100));
+  const zoneEl = document.getElementById('mRoomBarZone');
+  if(zoneEl){ zoneEl.style.left = zoneLeft+'%'; zoneEl.style.width = Math.max(0, zoneRight-zoneLeft)+'%'; }
+  const scaleLabelEl = document.getElementById('mRoomBarScaleLabel');
+  if(scaleLabelEl) scaleLabelEl.textContent = `${SIM.roomTemp.toFixed(1)}°C (เป้าหมาย ${bandParams.roomMin}-${bandParams.roomMax}°C)`;
   const spLabel = document.getElementById('mSetpointLabel');
   if(spLabel) spLabel.innerHTML = `Setpoint (${MODE_META[activeMode] ? MODE_META[activeMode].name : activeMode}): ${bandParams.roomMin}&ndash;${bandParams.roomMax}&deg;C &middot; Humi ${bandParams.humiMin}&ndash;${bandParams.humiMax}%RH`;
   const roomPct = Math.max(0, Math.min(100, ((SIM.roomTemp-15)/(35-15))*100));
   document.getElementById('mRoomBar').style.width = roomPct+'%';
   const overloadEl = document.getElementById('mOverloadWarn');
-  if(overloadEl) overloadEl.classList.toggle('hidden', !SIM.netHeating);
+  if(overloadEl){
+    if(SIM.roomTemp < bandParams.roomMin){
+      overloadEl.classList.remove('hidden');
+      overloadEl.style.color = '#35C7E0';
+      overloadEl.textContent = '❄ อุณหภูมิเย็น ต่ำกว่าค่าที่ตั้งไว้ ควรลดน้ำเย็นเข้าคอยล์';
+    } else if(SIM.roomTemp > bandParams.roomMax){
+      overloadEl.classList.remove('hidden');
+      overloadEl.style.color = 'var(--amber)';
+      overloadEl.textContent = '🔥 อุณหภูมิร้อน สูงกว่าค่าที่ตั้งไว้ ควรเพิ่มน้ำเย็นเข้าคอยล์';
+    } else {
+      overloadEl.classList.add('hidden');
+    }
+  }
 
   const cw1El = document.getElementById('mCw1');
   cw1El.textContent = states.cw1On ? SIM.cw1Ret.toFixed(1)+'°C' : 'OFF';
@@ -1486,7 +1546,9 @@ function paintDashboard(activeMode, states){
   // status pill
   const pill = document.getElementById('topStatusPill');
   const meta = MODE_META[SIM.mode];
-  const statusTxt = SIM.mode==='auto' ? `AUTO (${MODE_META[SIM.autoSub].name})` : meta.name + ' MODE';
+  const statusTxt = SIM.mode==='auto'
+    ? `AUTO · CW-1 ${Math.round(SIM.cw1ValvePct ?? 0)}% / CW-2 ${Math.round(SIM.cw2ValvePct ?? 0)}%`
+    : meta.name + ' MODE';
   document.getElementById('topStatusText').textContent = statusTxt;
   const blip = pill.querySelector('.blip');
   blip.style.background = meta.color; blip.style.boxShadow = `0 0 8px ${meta.color}`;
@@ -1501,20 +1563,22 @@ function paintDashboard(activeMode, states){
 function runDiagnostics(){
   const findings = [];
   const adm = RUNTIME.admin;
-  const target = adm.roomTarget ?? 25;
-  const tol = adm.roomTol ?? 2;
+  const resolved = resolveActiveStates(SIM.mode);
+  const bandParams = PARAMS[resolved.activeMode] || PARAMS.precool;
+  const target = (bandParams.roomMin+bandParams.roomMax)/2;
+  const withinBand = SIM.roomTemp >= bandParams.roomMin && SIM.roomTemp <= bandParams.roomMax;
   const dev = SIM.roomTemp - target;
-  const withinBand = Math.abs(dev) <= tol;
+  const modeName = MODE_META[resolved.activeMode] ? MODE_META[resolved.activeMode].name : resolved.activeMode;
 
   if(withinBand){
-    findings.push({level:'ok', title:'อุณหภูมิห้องอยู่ในเกณฑ์ที่ตั้งไว้', detail:`Room Temp ${SIM.roomTemp.toFixed(1)}°C อยู่ในช่วง Setpoint ${target}±${tol}°C — ไม่พบสาเหตุที่ต้องแก้ไข`});
+    findings.push({level:'ok', title:'อุณหภูมิห้องอยู่ในเกณฑ์ที่ตั้งไว้', detail:`Room Temp ${SIM.roomTemp.toFixed(1)}°C อยู่ในช่วง Setpoint (${modeName}) ${bandParams.roomMin}–${bandParams.roomMax}°C — ไม่พบสาเหตุที่ต้องแก้ไข`});
     return findings;
   }
 
-  findings.push({level:'warn', title: dev>0 ? 'อุณหภูมิห้องยังสูงกว่า Setpoint' : 'อุณหภูมิห้องต่ำกว่า Setpoint', detail:`ค่าจริง ${SIM.roomTemp.toFixed(1)}°C ห่างจาก Setpoint ${target}°C อยู่ ${Math.abs(dev).toFixed(1)}°C`});
+  const outsideBy = SIM.roomTemp > bandParams.roomMax ? (SIM.roomTemp-bandParams.roomMax) : (bandParams.roomMin-SIM.roomTemp);
+  findings.push({level:'warn', title: dev>0 ? 'อุณหภูมิห้องยังสูงกว่า Setpoint' : 'อุณหภูมิห้องต่ำกว่า Setpoint', detail:`ค่าจริง ${SIM.roomTemp.toFixed(1)}°C ห่างจากช่วง Setpoint (${modeName}) ${bandParams.roomMin}–${bandParams.roomMax}°C อยู่ ${outsideBy.toFixed(1)}°C`});
 
   if(dev>0){
-    const resolved = resolveActiveStates(SIM.mode);
     if(resolved.cw1On){
       const d1 = adm.designTRcw1 ?? 9.2;
       const pct1 = d1>0 ? (SIM.trCW1/d1*100) : 0;
@@ -1685,6 +1749,8 @@ function testSteadyState(){
   }
   const desiredMode = RUNTIME.controlSource==='manual' ? RUNTIME.manualMode : computeScheduledMode();
   const resolved = resolveActiveStates(desiredMode);
+  SIM.cw1ValvePct = resolved.cw1Pct;
+  SIM.cw2ValvePct = resolved.cw2Pct;
   const fanSpeedPct = SIM.humidityState==='trim' ? Math.min(resolved.baseFanPct, 55) : resolved.baseFanPct;
   const {temp, w, humidity, m3s, cRoom} = computeSteadyState(resolved);
   const adm = RUNTIME.admin;
@@ -1774,11 +1840,14 @@ function resetRoomLoadDefaults(){
 
 function renderModeBadges(){
   const host = document.getElementById('modeBadges');
+  const autoDesc = SIM.mode==='auto'
+    ? `CW-2 คุมอุณหภูมิ (${Math.round(SIM.cw2ValvePct ?? 0)}%) &middot; CW-1 คุมความชื้น (${Math.round(SIM.cw1ValvePct ?? 0)}%)`
+    : 'CW-2 มอดูเลตตามอุณหภูมิ (100-85-75-65%) &middot; CW-1 เปิดมอดูเลตเมื่อความชื้นเกิน แล้วปิดสนิทเมื่อได้ตามเป้า';
   const items = [
     {k:'precool', d:'CW-1 เปิด, พัดลมทำงานเต็มอัตรา 10,000 CFM (เตรียมความเย็นล่วงหน้า)'},
     {k:'operation', d:'CW-2 เปิด, พัดลมทำงานเต็มอัตรา 10,000 CFM'},
     {k:'supercool', d:'เปิดทั้ง CW-1 และ CW-2 พร้อมกันเพื่อลดอุณหภูมิเร็ว'},
-    {k:'auto', d:'สลับโหมดอัตโนมัติเพื่อรักษาอุณหภูมิที่ 14.5°C'}
+    {k:'auto', d:autoDesc}
   ];
   host.innerHTML = items.map(it=>{
     const active = SIM.mode===it.k;
@@ -1975,15 +2044,21 @@ function updateSchematicState(states, activeMode){
   const modeBadgeDot = document.getElementById('modeBadgeDot');
   if(modeBadgeText && MODE_META[SIM.mode]){
     const meta = MODE_META[SIM.mode];
-    const label = SIM.mode==='auto' ? `AUTO (${MODE_META[SIM.autoSub].name})` : meta.name + ' MODE';
+    const label = SIM.mode==='auto'
+      ? `AUTO · CW1 ${Math.round(SIM.cw1ValvePct ?? 0)}% / CW2 ${Math.round(SIM.cw2ValvePct ?? 0)}%`
+      : meta.name + ' MODE';
     modeBadgeText.textContent = label;
     const colorMap = {precool:'#35C7E0', operation:'#4CD787', supercool:'#F0A93C', auto:'#c58cf0'};
     const hex = colorMap[SIM.mode] || '#35C7E0';
     modeBadgeText.setAttribute('fill', hex);
     if(modeBadgeBox) modeBadgeBox.setAttribute('stroke', hex);
     if(modeBadgeDot) modeBadgeDot.setAttribute('fill', hex);
-    const textWidth = label.length*7.2+30;
-    if(modeBadgeBox) modeBadgeBox.setAttribute('width', Math.max(150, textWidth));
+    const rightEdge = 980;
+    const textWidth = Math.max(150, label.length*7.8+42);
+    const boxX = rightEdge - textWidth;
+    if(modeBadgeBox){ modeBadgeBox.setAttribute('width', textWidth); modeBadgeBox.setAttribute('x', boxX); }
+    if(modeBadgeDot) modeBadgeDot.setAttribute('cx', boxX+18);
+    modeBadgeText.setAttribute('x', boxX+30);
   }
   ['waveIntake1','waveIntake2','waveIntake3','waveCoil1','waveCoil2','waveCoil3','waveCooled'].forEach(id=>{
     const el = document.getElementById(id);
@@ -2141,12 +2216,10 @@ function renderParamCards(){
     </div>
     <div class="param-card">
       <h3 style="color:#c58cf0">4 &middot; Auto Mode</h3>
-      <div class="pc-sub">ระบบสลับระหว่าง Pre-Cool / Operation / Super Cool อัตโนมัติ เพื่อรักษาระดับที่ตั้งไว้</div>
-      ${paramField('auto','targetTemp','อุณหภูมิห้องเป้าหมาย (°C)', p.auto.targetTemp, '0.1')}
-      ${paramField('auto','tolerance','ช่วงเผื่อ Tolerance (±°C)', p.auto.tolerance, '0.1')}
-      ${paramField('auto','keepLevel','Keep Level CW (°C)', p.auto.keepLevel, '0.1')}
-      ${paramField('auto','opThreshold','เกณฑ์เข้า Operation (Δ°C)', p.auto.opThreshold, '0.1')}
-      ${paramField('auto','scThreshold','เกณฑ์เข้า Super Cool (Δ°C)', p.auto.scThreshold, '0.1')}
+      <div class="pc-sub">CW-2 มอดูเลตตามอุณหภูมิห้อง (100→85→75→65%) &middot; CW-1 มอดูเลตตามความชื้น เปิดเมื่อเกิน Setpoint แล้วปิดสนิทเมื่อได้ตามเป้า &middot; ทำงานพร้อมกันเป็นอิสระต่อกัน</div>
+      ${paramField('auto','targetTemp','อุณหภูมิห้องเป้าหมาย (°C) &middot; ใช้คุม CW-2', p.auto.targetTemp, '0.1')}
+      ${paramField('auto','keepLevel','Keep Level CW (°C) &middot; Setpoint น้ำเย็นทั้ง CW-1/CW-2', p.auto.keepLevel, '0.1')}
+      <div class="small-note" style="margin-top:8px; margin-bottom:0;">ความชื้นเป้าหมายของ CW-1 ใช้ค่า Humidity Setpoint ที่ตั้งไว้ในหน้า Admin &middot; ขั้นมอดูเลต: อุณหภูมิเกิน Setpoint &gt;3&deg;C=100%, &gt;2&deg;C=85%, &gt;1&deg;C=75%, อื่นๆ=65% (ไม่ปิดสนิท) &middot; ความชื้นเกิน Setpoint &gt;10%=100%, &gt;6%=85%, &gt;3%=75%, &gt;0%=65%, ต่ำกว่า=ปิด</div>
       ${calcSettingBlock('auto')}
     </div>
   `;
