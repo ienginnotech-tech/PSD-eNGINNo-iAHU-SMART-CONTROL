@@ -397,7 +397,7 @@ tr:last-child td{border-bottom:none;}
         <div class="metric">
           <div class="m-label">Room Temperature / Humidity</div>
           <div class="m-value"><span id="mRoomTemp">0.0</span><span class="m-unit">&deg;C</span><span style="color:var(--text-faint); font-size:16px; margin:0 2px;">/</span><span id="mRoomHumi" style="color:var(--cyan)">0</span><span class="m-unit">%RH</span></div>
-          <div class="m-sub">Setpoint <span id="mRoomTarget">25.0</span>&deg;C &plusmn; <span id="mRoomTol">2.0</span>&deg;C &middot; Humi setpoint <span id="mHumiTarget">60</span>%RH</div>
+          <div class="m-sub" id="mSetpointLabel">Setpoint --</div>
           <div id="mOverloadWarn" class="hidden" style="color:var(--red); font-size:10.5px; font-family:var(--font-mono); margin-top:5px;">&#9888; โหลดความร้อนเกินกำลังทำความเย็น ณ ขณะนี้ &mdash; ตรวจสอบ Room Load Inputs</div>
           <div class="m-bar"><div class="m-bar-fill" id="mRoomBar" style="width:0%; background:var(--amber);"></div></div>
         </div>
@@ -1200,6 +1200,16 @@ function recomputeTR(){
   SIM.trCW2 = (SIM.a1_cw2!=null && SIM.a2_cw2!=null && SIM.a6_cw2!=null) ? Math.max(0,(SIM.a2_cw2-SIM.a1_cw2)*SIM.a6_cw2/24) : 0;
 }
 
+function getCw1Setpoint(mode){
+  if(mode==='precool') return PARAMS.precool.cw1Setpoint ?? 14.5;
+  if(mode==='supercool') return PARAMS.supercool.cw1Setpoint ?? 14.5;
+  return PARAMS.precool.cw1Setpoint ?? PARAMS.supercool.cw1Setpoint ?? 14.5;
+}
+function getCw2Setpoint(mode){
+  if(mode==='operation') return PARAMS.operation.cw2Setpoint ?? 14.5;
+  if(mode==='supercool') return PARAMS.supercool.cw2Setpoint ?? 14.5;
+  return PARAMS.operation.cw2Setpoint ?? PARAMS.supercool.cw2Setpoint ?? 14.5;
+}
 function resolveActiveStates(mode){
   // Pure: decides which coils/fan should be active for a given mode, without mutating SIM or logging.
   let activeMode = mode;
@@ -1239,12 +1249,22 @@ function quickRepaint(){
   SIM.airflow = resolved.fanOn ? 10000*(SIM.fanSpeedPct/100) : 0;
   SIM.cw1Util = resolved.cw1On ? 100 : 0;
   SIM.cw2Util = resolved.cw2On ? 100 : 0;
-  const cw1Sp = PARAMS.precool.cw1Setpoint ?? PARAMS.supercool.cw1Setpoint ?? 14.5;
-  const cw2Sp = PARAMS.operation.cw2Setpoint ?? PARAMS.supercool.cw2Setpoint ?? 14.5;
+  const cw1Sp = getCw1Setpoint(resolved.activeMode);
+  const cw2Sp = getCw2Setpoint(resolved.activeMode);
   SIM.cw1Ret = resolved.cw1On ? cw1Sp : cw1Sp+9;
   SIM.cw2Ret = resolved.cw2On ? cw2Sp : cw2Sp+9;
   if(!RUNTIME.telemetryManual){
     SIM.a5 = SIM.airflow;
+  }
+
+  // Jump Room Temp/Humidity straight to the new steady state for this mode — this only runs on an
+  // actual mode CHANGE (not on repeated clicks of the same mode), so it can't cause runaway drift.
+  if(SIM.a1_cw1!=null && SIM.a1_cw2!=null && SIM.a5!=null && SIM.a8!=null){
+    const steady = computeSteadyState(resolved);
+    SIM.roomTemp = steady.temp;
+    SIM.roomW = steady.w;
+    SIM.roomHumidity = steady.humidity;
+    if(!RUNTIME.telemetryManual) SIM.a7 = SIM.roomTemp;
   }
 
   paintDashboard(resolved.activeMode, {cw1On:resolved.cw1On, cw2On:resolved.cw2On, fanOn:resolved.fanOn});
@@ -1308,8 +1328,8 @@ function runSimTick(){
   // CW utilization ramps
   SIM.cw1Util += ((cw1On?100:0) - SIM.cw1Util)*0.3;
   SIM.cw2Util += ((cw2On?100:0) - SIM.cw2Util)*0.3;
-  const cw1Sp = PARAMS.precool.cw1Setpoint ?? PARAMS.supercool.cw1Setpoint ?? 14.5;
-  const cw2Sp = PARAMS.operation.cw2Setpoint ?? PARAMS.supercool.cw2Setpoint ?? 14.5;
+  const cw1Sp = getCw1Setpoint(activeMode);
+  const cw2Sp = getCw2Setpoint(activeMode);
   SIM.cw1Ret += ((cw1On? cw1Sp : cw1Sp+9) - SIM.cw1Ret)*0.25;
   SIM.cw2Ret += ((cw2On? cw2Sp : cw2Sp+9) - SIM.cw2Ret)*0.25;
 
@@ -1422,15 +1442,15 @@ function paintDashboard(activeMode, states){
   document.getElementById('mAirflowBar').style.width = Math.min(100, SIM.airflow/10000*100)+'%';
 
   document.getElementById('mRoomTemp').textContent = SIM.roomTemp.toFixed(1);
-  document.getElementById('mRoomTarget').textContent = RUNTIME.admin.roomTarget.toFixed(1);
-  document.getElementById('mRoomTol').textContent = RUNTIME.admin.roomTol.toFixed(1);
   document.getElementById('mRoomHumi').textContent = SIM.roomHumidity.toFixed(1);
-  document.getElementById('mHumiTarget').textContent = Math.round(RUNTIME.admin.humiditySetpoint ?? 60);
-  const tempWithinBand = Math.abs(SIM.roomTemp - RUNTIME.admin.roomTarget) <= RUNTIME.admin.roomTol;
+  const bandParams = PARAMS[activeMode] || PARAMS.precool;
+  const tempWithinBand = SIM.roomTemp >= bandParams.roomMin && SIM.roomTemp <= bandParams.roomMax;
   document.getElementById('mRoomTemp').style.color = tempWithinBand ? 'var(--green)' : 'var(--amber)';
   const humiEl = document.getElementById('mRoomHumi');
-  const humiWithinBand = SIM.roomHumidity <= (RUNTIME.admin.humiditySetpoint ?? 60);
+  const humiWithinBand = SIM.roomHumidity >= bandParams.humiMin && SIM.roomHumidity <= bandParams.humiMax;
   humiEl.style.color = humiWithinBand ? 'var(--green)' : 'var(--amber)';
+  const spLabel = document.getElementById('mSetpointLabel');
+  if(spLabel) spLabel.innerHTML = `Setpoint (${MODE_META[activeMode] ? MODE_META[activeMode].name : activeMode}): ${bandParams.roomMin}&ndash;${bandParams.roomMax}&deg;C &middot; Humi ${bandParams.humiMin}&ndash;${bandParams.humiMax}%RH`;
   const roomPct = Math.max(0, Math.min(100, ((SIM.roomTemp-15)/(35-15))*100));
   document.getElementById('mRoomBar').style.width = roomPct+'%';
   const overloadEl = document.getElementById('mOverloadWarn');
@@ -1593,15 +1613,7 @@ function setTelemetryValue(key, val){
   renderDiagnostics();
 }
 
-function testSteadyState(){
-  if(SIM.a1_cw1==null || SIM.a5==null || SIM.a8==null){
-    toast('ยังไม่มีค่า A1–A8 ให้ทดสอบ รอระบบคำนวณค่าเริ่มต้นก่อนสักครู่');
-    return;
-  }
-  const desiredMode = RUNTIME.controlSource==='manual' ? RUNTIME.manualMode : computeScheduledMode();
-  const resolved = resolveActiveStates(desiredMode);
-  const fanSpeedPct = SIM.humidityState==='trim' ? Math.min(resolved.baseFanPct, 55) : resolved.baseFanPct;
-
+function computeSteadyState(resolved){
   const adm = RUNTIME.admin;
   const oaFrac = (adm.oaFraction ?? 15)/100;
   const bfCW1 = adm.bfCW1 ?? 0.18, bfCW2 = adm.bfCW2 ?? 0.08;
@@ -1617,8 +1629,8 @@ function testSteadyState(){
   const roomAirMassKg = Math.max(100, adm.roomAirMass ?? 3600);
   const chsC_cw1 = (SIM.a1_cw1-32)*5/9;
   const chsC_cw2 = (SIM.a1_cw2-32)*5/9;
-  const cw1SpTest = PARAMS.precool.cw1Setpoint ?? PARAMS.supercool.cw1Setpoint ?? 14.5;
-  const cw2SpTest = PARAMS.operation.cw2Setpoint ?? PARAMS.supercool.cw2Setpoint ?? 14.5;
+  const cw1SpTest = getCw1Setpoint(resolved.activeMode);
+  const cw2SpTest = getCw2Setpoint(resolved.activeMode);
   const adpBasisCW1 = (chsC_cw1 + cw1SpTest)/2;
   const adpBasisCW2 = (chsC_cw2 + cw2SpTest)/2;
 
@@ -1642,11 +1654,24 @@ function testSteadyState(){
     w = Math.max(0.002, w+dW);
   }
   const humidity = rhFromHumidityRatio(temp, w);
+  return {temp, w, humidity, m3s, cRoom};
+}
+function testSteadyState(){
+  if(SIM.a1_cw1==null || SIM.a5==null || SIM.a8==null){
+    toast('ยังไม่มีค่า A1–A8 ให้ทดสอบ รอระบบคำนวณค่าเริ่มต้นก่อนสักครู่');
+    return;
+  }
+  const desiredMode = RUNTIME.controlSource==='manual' ? RUNTIME.manualMode : computeScheduledMode();
+  const resolved = resolveActiveStates(desiredMode);
+  const fanSpeedPct = SIM.humidityState==='trim' ? Math.min(resolved.baseFanPct, 55) : resolved.baseFanPct;
+  const {temp, w, humidity, m3s, cRoom} = computeSteadyState(resolved);
+  const adm = RUNTIME.admin;
 
   LAST_TEST_RESULT = {temp, w, humidity};
 
   // Rough ETA for the LIVE simulation to naturally reach ~95% of the way to this steady state,
   // given the current sim-rate (minutes simulated per 3s real tick).
+  const simMinutes = adm.simRate || 5;
   const tauHours = cRoom / Math.max(0.05, 1.2*m3s); // thermal time-constant of the room
   const etaSimHours = tauHours*3; // ~95% settled after ~3 time constants
   const etaTicks = Math.max(1, Math.ceil((etaSimHours*60)/simMinutes));
@@ -1954,15 +1979,16 @@ function updateSchematicState(states, activeMode){
   const l2=document.getElementById('svgCw2Label'); if(l2){l2.textContent=states.cw2On?SIM.cw2Ret.toFixed(1)+'°C':'OFF'; l2.setAttribute('fill', states.cw2On?'#4CD787':'#7C8DA0');}
   const lf=document.getElementById('svgFanLabel'); if(lf){lf.textContent=states.fanOn?`VSD ${Math.round(SIM.fanSpeedPct)}%`:'OFF'; lf.setAttribute('fill', states.fanOn?'#4CD787':'#7C8DA0');}
   const rt=document.getElementById('svgRoomTemp');
+  const bandParams2 = PARAMS[activeMode] || PARAMS.precool;
   if(rt){
     rt.innerHTML=SIM.roomTemp.toFixed(1)+' &deg;C';
-    const withinTemp = Math.abs(SIM.roomTemp - RUNTIME.admin.roomTarget) <= RUNTIME.admin.roomTol;
+    const withinTemp = SIM.roomTemp >= bandParams2.roomMin && SIM.roomTemp <= bandParams2.roomMax;
     rt.setAttribute('fill', withinTemp ? '#4CD787' : '#F0A93C');
   }
   const rh=document.getElementById('svgRoomHumi');
   if(rh){
     rh.textContent=SIM.roomHumidity.toFixed(1)+' %RH';
-    const withinHumi = SIM.roomHumidity <= (RUNTIME.admin.humiditySetpoint ?? 60);
+    const withinHumi = SIM.roomHumidity >= bandParams2.humiMin && SIM.roomHumidity <= bandParams2.humiMax;
     rh.setAttribute('fill', withinHumi ? '#4CD787' : '#F0A93C');
   }
   const fl=document.getElementById('svgFlowLabel'); if(fl) fl.textContent=Math.round(SIM.airflow).toLocaleString()+' CFM';
