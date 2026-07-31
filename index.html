@@ -382,6 +382,7 @@ tr:last-child td{border-bottom:none;}
         </div>
         <div class="top-actions">
           <button class="btn btn-ghost btn-sm" id="exportGifBtn" onclick="exportDashboardGif()">&#128247; Export GIF</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportDashboardAnimatedSvg()">&#128190; Export SVG (เคลื่อนไหว)</button>
           <div class="status-pill" id="topStatusPill" class="mono"><span class="blip"></span><span id="topStatusText">-</span></div>
         </div>
       </div>
@@ -707,32 +708,38 @@ async function exportDashboardGif(){
   const btn = document.getElementById('exportGifBtn');
   if(btn){ btn.disabled = true; btn.textContent = '⏳ กำลังสร้าง GIF...'; }
   toast('กำลังสร้าง GIF ภาพเคลื่อนไหว... กรุณารอสักครู่ (ห้ามปิดหน้าต่าง)');
+  let settled = false;
+  const finish = (ok)=>{
+    if(settled) return;
+    settled = true;
+    if(btn){ btn.disabled=false; btn.innerHTML='&#128247; Export GIF'; }
+    if(!ok) exportDashboardAnimatedSvg('GIF encoding ในเบราว์เซอร์นี้ใช้ไม่ได้ (มักติดข้อจำกัดการโหลด Worker จาก CDN ของ sandbox) ระบบเลยดาวน์โหลดไฟล์ SVG เคลื่อนไหวให้แทน — เปิดไฟล์นี้ในเบราว์เซอร์ (ดับเบิลคลิก) จะเห็นภาพเคลื่อนไหวเหมือนกันทุกอย่าง ใช้นำเสนอได้เลย หรือจะอัดหน้าจอ (screen record) ตอนเปิดไฟล์นี้เป็นวิดีโอ/GIF อีกทีก็ได้');
+  };
   try{
     await ensureGifLib();
     const width=1000, height=460;
     const geom = window.SCHEMATIC_GEOM || {fanCx:600, fanCy:230};
     const fanOn = document.getElementById('svgFanLabel') && document.getElementById('svgFanLabel').textContent.trim()!=='OFF';
-    const gif = new GIF({workers:2, quality:8, width, height, workerScript:'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'});
-    const frameCount = 24;
+    const gif = new GIF({workers:1, quality:10, width, height, workerScript:'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'});
+    const frameCount = 20;
     const cycleMs = 2400;
     const frameDelay = Math.round(cycleMs/frameCount);
+
+    // If the worker never loads (CDN/CSP blocked), gif.js just hangs silently — give it 12s then fall back.
+    const watchdog = setTimeout(()=>{ if(!settled){ toast('รอ GIF นานเกินไป — เปลี่ยนไปดาวน์โหลด SVG เคลื่อนไหวแทน'); finish(false); } }, 12000);
 
     for(let i=0;i<frameCount;i++){
       const t = i*frameDelay;
       const clone = svgEl.cloneNode(true);
-
-      // Bake fan rotation (CSS animation doesn't survive serialization, so compute it manually)
       const fanBlades = clone.querySelector('#fanBlades');
       if(fanBlades && fanOn){
         const angle = (t/1300*360)%360;
         fanBlades.setAttribute('transform', `rotate(${angle.toFixed(1)} ${geom.fanCx} ${geom.fanCy})`);
       }
-      // Bake duct/wave flow dash offset
       clone.querySelectorAll('.duct-flow').forEach(el=>{
         const offset = -((t/1000*24)%24);
         el.style.strokeDashoffset = offset.toFixed(1);
       });
-      // Bake moving arrows
       clone.querySelectorAll('.arrow-flow').forEach((el,idx)=>{
         const delayMs = idx*500;
         const local = ((t+delayMs)%1800)/1800;
@@ -741,7 +748,6 @@ async function exportDashboardGif(){
         el.setAttribute('transform', `translate(${tx.toFixed(1)},0)`);
         el.style.opacity = Math.max(0,Math.min(1,op)).toFixed(2);
       });
-      // Bake coil/filter blink opacity
       clone.querySelectorAll('.blink').forEach(el=>{
         const phase = (t%1100)/1100;
         const op = 1 - 0.35*Math.abs(Math.sin(phase*Math.PI));
@@ -760,6 +766,9 @@ async function exportDashboardGif(){
     }
 
     gif.on('finished', function(blob){
+      clearTimeout(watchdog);
+      if(settled) return;
+      settled = true;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'PSD_iAHU_Dashboard.gif';
@@ -769,12 +778,41 @@ async function exportDashboardGif(){
       toast('ดาวน์โหลด GIF สำเร็จแล้ว!');
       if(btn){ btn.disabled=false; btn.innerHTML='&#128247; Export GIF'; }
     });
+    gif.on('abort', ()=>{ if(!settled){ toast('GIF encoding ถูกยกเลิก — เปลี่ยนไปดาวน์โหลด SVG แทน'); finish(false); } });
     gif.render();
   }catch(err){
     console.error('GIF export failed', err);
-    toast('สร้าง GIF ไม่สำเร็จ — เบราว์เซอร์อาจไม่รองรับ ลองใหม่อีกครั้ง');
-    if(btn){ btn.disabled=false; btn.innerHTML='&#128247; Export GIF'; }
+    finish(false);
   }
+}
+function exportDashboardAnimatedSvg(reasonMsg){
+  const svgEl = document.querySelector('#schematicHost svg');
+  if(!svgEl){ toast('ไม่พบไดอะแกรมให้ export'); return; }
+  const clone = svgEl.cloneNode(true);
+  const styleEl = clone.querySelector('defs style') || clone.querySelector('style');
+  const extraCss = `
+    .duct-flow{stroke-dasharray:6 6; animation:flowmove 1s linear infinite;}
+    @keyframes flowmove{to{stroke-dashoffset:-24;}}
+    .arrow-flow{animation:arrowflow 1.8s linear infinite; transform-box:fill-box; transform-origin:center;}
+    @keyframes arrowflow{0%{transform:translateX(0); opacity:0;} 10%{opacity:1;} 85%{opacity:1;} 100%{transform:translateX(90px); opacity:0;}}
+    .blink{animation:coilBlink 1.1s ease-in-out infinite;}
+    @keyframes coilBlink{0%,100%{opacity:1;} 50%{opacity:0.3;}}
+  `;
+  if(styleEl){ styleEl.textContent += extraCss; }
+  else {
+    const s = document.createElementNS('http://www.w3.org/2000/svg','style');
+    s.textContent = extraCss;
+    clone.insertBefore(s, clone.firstChild);
+  }
+  const svgString = new XMLSerializer().serializeToString(clone);
+  const blob = new Blob([svgString], {type:'image/svg+xml'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'PSD_iAHU_Dashboard_animated.svg';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  toast(reasonMsg || 'ดาวน์โหลดไฟล์ SVG เคลื่อนไหวสำเร็จ — เปิดไฟล์นี้ในเบราว์เซอร์เพื่อดูภาพเคลื่อนไหว');
 }
 
 function toast(msg){
@@ -1413,9 +1451,7 @@ function paintDashboard(activeMode, states){
   // status pill
   const pill = document.getElementById('topStatusPill');
   const meta = MODE_META[SIM.mode];
-  let statusTxt = SIM.mode==='auto' ? `AUTO (${MODE_META[SIM.autoSub].name})` : meta.name + ' MODE';
-  if(SIM.humidityState==='boost') statusTxt += ' · DEHUMIDIFY WATCH';
-  else if(SIM.humidityState==='trim') statusTxt += ' · DEHUMIDIFY VSD ASSIST';
+  const statusTxt = SIM.mode==='auto' ? `AUTO (${MODE_META[SIM.autoSub].name})` : meta.name + ' MODE';
   document.getElementById('topStatusText').textContent = statusTxt;
   const blip = pill.querySelector('.blip');
   blip.style.background = meta.color; blip.style.boxShadow = `0 0 8px ${meta.color}`;
@@ -1830,10 +1866,12 @@ function renderSchematic(){
     <text x="${filterX-68}" y="${casingTop-30}" class="lbl" fill="#E7EEF3" font-size="12" font-weight="700">AHU-01 &middot; 10,000 CFM</text>
 
     <!-- ===== Airflow waves: orange (intake, before filter) -> green (through CW-1/CW-2) -> blue (after coils to fan) ===== -->
-    <path d="${wavePath(158,filterX-2,casingTop+casingH/2-14,7)}" fill="none" stroke="#F0A93C" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake1" opacity="0"/>
-    <path d="${wavePath(158,filterX-2,casingTop+casingH/2,7)}" fill="none" stroke="#F0A93C" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake2" opacity="0"/>
-    <path d="${wavePath(158,filterX-2,casingTop+casingH/2+14,7)}" fill="none" stroke="#F0A93C" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake3" opacity="0"/>
-    <path d="${wavePath(filterX+2,fanX-2,casingTop+casingH/2,8)}" fill="none" stroke="#4CD787" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCoil" opacity="0"/>
+    <path d="${wavePath(158,filterX-2,casingTop+casingH/2-14,7)}" fill="none" stroke="#4CD787" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake1" opacity="0"/>
+    <path d="${wavePath(158,filterX-2,casingTop+casingH/2,7)}" fill="none" stroke="#4CD787" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake2" opacity="0"/>
+    <path d="${wavePath(158,filterX-2,casingTop+casingH/2+14,7)}" fill="none" stroke="#4CD787" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveIntake3" opacity="0"/>
+    <path d="${wavePath(filterX+2,fanX-2,casingTop+casingH/2-14,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCoil1" opacity="0"/>
+    <path d="${wavePath(filterX+2,fanX-2,casingTop+casingH/2,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCoil2" opacity="0"/>
+    <path d="${wavePath(filterX+2,fanX-2,casingTop+casingH/2+14,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCoil3" opacity="0"/>
     <path d="${wavePath(fanX+2,fanX+fanW-15,casingTop+casingH/2,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCooled" opacity="0"/>
 
     <!-- ===== Supply side ===== -->
@@ -1861,7 +1899,7 @@ function renderSchematic(){
 
     <!-- ===== Return air loop (flows right-to-left back to the unit) ===== -->
     <path id="returnDuct" class="duct" d="M650,398 L60,398 L60,168 L${filterX-70},168" stroke="#233542"/>
-    <path d="M128,163 L148,168 L128,173 Z" fill="#5C7385" id="raArrow"/>
+    <path d="M128,163 L148,168 L128,173 Z" fill="#5C7385" id="raArrow" class="arrow-flow"/>
     ${[140,230,320,410,500,590].map(x=>`<path d="M${x+9},392 L${x+9},404 L${x-9},398 Z" fill="#5C7385" id="radArrow${x}"/>`).join('')}
     <path d="M53,300 L67,300 L60,284 Z" fill="#5C7385" id="radArrowUp"/>
     <text x="330" y="416" text-anchor="middle" class="lbl">RETURN AIR (RAD)</text>
@@ -1879,7 +1917,7 @@ function renderSchematic(){
 }
 
 function updateSchematicState(states, activeMode){
-  ['waveIntake1','waveIntake2','waveIntake3','waveCoil','waveCooled'].forEach(id=>{
+  ['waveIntake1','waveIntake2','waveIntake3','waveCoil1','waveCoil2','waveCoil3','waveCooled'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.setAttribute('opacity', states.fanOn ? '0.85' : '0');
   });
