@@ -1871,6 +1871,40 @@ function wavePath(x1,x2,y,amp){
   }
   return d;
 }
+function svgCoilRealistic(xStart,xEnd,y,h,n,id){
+  const boxW = xEnd-xStart;
+  const headerW = Math.min(16, boxW*0.16);
+  const gap = 5;
+  const headerX = xStart + boxW/2 - headerW/2; // copper header centered in the coil box
+  const leftW = headerX - gap - xStart;
+  const rightW = xEnd - (headerX+headerW+gap);
+  const nLeft = Math.max(1, Math.round(n * (leftW/(leftW+rightW))));
+  const nRight = Math.max(1, n - nLeft);
+  const nTubes = Math.max(4, Math.round(h/18));
+  const r = 3;
+  let header = `<g>`;
+  for(let i=0;i<nTubes;i++){
+    const cy = y+14+i*((h-28)/(nTubes-1));
+    const cx = headerX+headerW/2;
+    header += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="#B87333" stroke="#6E4119" stroke-width="0.7"/>`;
+    header += `<circle cx="${(cx-0.9).toFixed(1)}" cy="${(cy-0.9).toFixed(1)}" r="1" fill="#E3A868" opacity="0.75"/>`;
+  }
+  header += `</g>`;
+
+  let fins = `<g id="${id}" style="color:#2A3945">`;
+  const addFinLines = (fxStart, fxEnd, count) => {
+    const step = (fxEnd-fxStart)/(count+1);
+    for(let i=1;i<=count;i++){
+      const x = (fxStart+step*i).toFixed(1);
+      fins += `<line x1="${x}" y1="${y+6}" x2="${x}" y2="${y+h-6}" stroke="currentColor" stroke-width="2.4"/>`;
+    }
+  };
+  addFinLines(xStart, headerX-gap, nLeft);
+  addFinLines(headerX+headerW+gap, xEnd, nRight);
+  fins += `</g>`;
+
+  return header + fins;
+}
 function svgFins(xStart,xEnd,y,h,n,id){
   let s = `<g id="${id}" style="color:#2A3945">`;
   const step = (xEnd-xStart)/(n+1);
@@ -1907,6 +1941,7 @@ function renderSchematic(){
   const coil2X = coil1X + coil1W + coilGap;
   const coil2W = (fanX - coil2X);
   const casingTop=150, casingH=160, casingBot=casingTop+casingH;
+  const depth=16; // isometric extrusion depth for the 3D casing effect
   const fanCx = fanX+95, fanCy = casingTop+casingH/2, fanR=42;
   window.SCHEMATIC_GEOM = {fanCx, fanCy};
 
@@ -1914,12 +1949,42 @@ function renderSchematic(){
   <svg viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <clipPath id="filterClip"><rect x="${filterX}" y="${casingTop}" width="${filterW}" height="${casingH}"/></clipPath>
+      <linearGradient id="casingGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#233241"/>
+        <stop offset="8%" stop-color="#1B2836"/>
+        <stop offset="55%" stop-color="#131E28"/>
+        <stop offset="100%" stop-color="#0C141C"/>
+      </linearGradient>
+      <linearGradient id="casingSheen" x1="0" y1="0" x2="1" y2="0.3">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+        <stop offset="45%" stop-color="#ffffff" stop-opacity="0.05"/>
+        <stop offset="52%" stop-color="#ffffff" stop-opacity="0.09"/>
+        <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="baseFrameGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2A3B4A"/>
+        <stop offset="100%" stop-color="#141E27"/>
+      </linearGradient>
+      <radialGradient id="fanGrad" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="#243543"/>
+        <stop offset="70%" stop-color="#16232E"/>
+        <stop offset="100%" stop-color="#0C141C"/>
+      </radialGradient>
+      <linearGradient id="topFaceGrad" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="#2A3B4A"/>
+        <stop offset="100%" stop-color="#3B5062"/>
+      </linearGradient>
+      <filter id="casingShadow" x="-20%" y="-20%" width="140%" height="180%">
+        <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/>
+      </filter>
       <style>
         .lbl{font-family:'JetBrains Mono',monospace; font-size:10px; fill:#7C8DA0;}
         .lbl-sm{font-family:'JetBrains Mono',monospace; font-size:8.5px; fill:#5C7385;}
         .val{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;}
         .duct{fill:none; stroke:#233542; stroke-width:9; stroke-linecap:round;}
         .thin{fill:none; stroke:#2A3945; stroke-width:1.4;}
+        .rivet{fill:#3A4C5C; stroke:#0C141C; stroke-width:0.6;}
         #fanBlades{transform-origin:${fanCx}px ${fanCy}px;}
         .fanspin{animation:fanspin 1.3s linear infinite;}
         @keyframes fanspin{to{transform:rotate(360deg);}}
@@ -1928,8 +1993,36 @@ function renderSchematic(){
       </style>
     </defs>
 
-    <!-- ===== Outer AHU casing ===== -->
-    <rect x="${filterX-70}" y="${casingTop}" width="${(fanX+fanW)-(filterX-70)}" height="${casingH}" rx="8" fill="#131F29" stroke="#233542" stroke-width="1.6"/>
+    <!-- ===== Outer AHU casing (metallic panel look, isometric depth) ===== -->
+    <g filter="url(#casingShadow)">
+      <!-- right end-cap (depth side, shadowed) -->
+      <path d="M${fanX+fanW},${casingTop} L${fanX+fanW+depth},${casingTop-depth} L${fanX+fanW+depth},${casingBot-depth} L${fanX+fanW},${casingBot} Z" fill="#0A1119" stroke="#2E4054" stroke-width="1.2"/>
+      <!-- left end-cap (depth side, shadowed) -->
+      <path d="M${filterX-70},${casingTop} L${filterX-70+depth},${casingTop-depth} L${filterX-70+depth},${casingBot-depth} L${filterX-70},${casingBot} Z" fill="#0A1119" stroke="#2E4054" stroke-width="1.2"/>
+      <!-- top face (catches light) -->
+      <path d="M${filterX-70},${casingTop} L${filterX-70+depth},${casingTop-depth} L${fanX+fanW+depth},${casingTop-depth} L${fanX+fanW},${casingTop} Z" fill="url(#topFaceGrad)" stroke="#2E4054" stroke-width="1.2"/>
+      <!-- front face (main, flat diagram lives on top of this) -->
+      <rect x="${filterX-70}" y="${casingTop}" width="${(fanX+fanW)-(filterX-70)}" height="${casingH}" rx="6" fill="url(#casingGrad)" stroke="#2E4054" stroke-width="1.8"/>
+      <rect x="${filterX-70}" y="${casingTop}" width="${(fanX+fanW)-(filterX-70)}" height="${casingH}" rx="6" fill="url(#casingSheen)"/>
+    </g>
+    <!-- top face seam rivets -->
+    ${[0.15,0.35,0.55,0.75,0.95].map(f=>
+      `<circle cx="${(filterX-70)+f*((fanX+fanW)-(filterX-70))+depth*0.5}" cy="${casingTop-depth*0.5}" r="1.3" class="rivet"/>`
+    ).join('')}
+    <!-- base frame / skid (gives the unit visual weight, like a real AHU mounted on a steel base) -->
+    <rect x="${filterX-78}" y="${casingBot+2}" width="${(fanX+fanW)-(filterX-70)+16}" height="6" rx="2" fill="url(#baseFrameGrad)" stroke="#0C141C" stroke-width="1"/>
+    ${[0,1,2,3,4].map(i=>`<rect x="${filterX-60+i*130}" y="${casingBot+8}" width="10" height="6" fill="#141E27" stroke="#0C141C"/>`).join('')}
+    <!-- panel seam rivets along the top and bottom edges -->
+    ${Array.from({length:Math.floor(((fanX+fanW)-(filterX-70))/42)},(_, i)=>{
+      const rx = filterX-70+22+i*42;
+      return `<circle cx="${rx}" cy="${casingTop+7}" r="1.6" class="rivet"/><circle cx="${rx}" cy="${casingBot-7}" r="1.6" class="rivet"/>`;
+    }).join('')}
+    <!-- blank rating plate (no branding) -->
+    <rect x="${filterX-58}" y="${casingTop+58}" width="34" height="24" rx="2" fill="#0E1720" stroke="#3A4C5C" stroke-width="0.8"/>
+    ${[0,1,2].map(i=>`<line x1="${filterX-54}" y1="${casingTop+65+i*6}" x2="${filterX-28}" y2="${casingTop+65+i*6}" stroke="#3A4C5C" stroke-width="1"/>`).join('')}
+    <!-- door hinges on the mixing-box access panel -->
+    <rect x="${filterX-72}" y="${casingTop+18}" width="4" height="14" rx="1" fill="#3A4C5C"/>
+    <rect x="${filterX-72}" y="${casingBot-32}" width="4" height="14" rx="1" fill="#3A4C5C"/>
     <!-- section dividers -->
     <line x1="${filterX}" y1="${casingTop}" x2="${filterX}" y2="${casingBot}" class="thin"/>
     <line x1="${coil1X}" y1="${casingTop}" x2="${coil1X}" y2="${casingBot}" class="thin"/>
@@ -1956,24 +2049,28 @@ function renderSchematic(){
     <text x="${filterX+filterW/2}" y="${casingBot+20}" text-anchor="middle" class="lbl">FILTER</text>
 
     <!-- Coil 1 (CW-1) — 32.34 kW, 30% of coil face area -->
-    ${svgFins(coil1X,coil1X+coil1W,casingTop,casingH,4,'coil1fins')}
+    ${svgCoilRealistic(coil1X,coil1X+coil1W,casingTop,casingH,4,'coil1fins')}
     <rect x="${coil1X}" y="${casingTop}" width="${coil1W}" height="${casingH}" fill="none" stroke="#233542" id="coil1box"/>
     <text x="${coil1X+coil1W/2}" y="${casingBot+20}" text-anchor="middle" class="lbl">CW-1 &middot; 30%</text>
     <text x="${coil1X+coil1W/2}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgCw1Label" fill="#7C8DA0">OFF</text>
     <text x="${coil1X+coil1W/2}" y="${casingBot+46}" text-anchor="middle" class="lbl-sm" id="svgCw1LabelF">--</text>
 
     <!-- Coil 2 (CW-2) — 51.88 kW, 70% of coil face area -->
-    ${svgFins(coil2X,coil2X+coil2W,casingTop,casingH,7,'coil2fins')}
+    ${svgCoilRealistic(coil2X,coil2X+coil2W,casingTop,casingH,7,'coil2fins')}
     <rect x="${coil2X}" y="${casingTop}" width="${coil2W}" height="${casingH}" fill="none" stroke="#233542" id="coil2box"/>
     <text x="${coil2X+coil2W/2}" y="${casingBot+20}" text-anchor="middle" class="lbl">CW-2 &middot; 70%</text>
     <text x="${coil2X+coil2W/2}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgCw2Label" fill="#7C8DA0">OFF</text>
     <text x="${coil2X+coil2W/2}" y="${casingBot+46}" text-anchor="middle" class="lbl-sm" id="svgCw2LabelF">--</text>
 
     <!-- Fan section -->
+    <circle cx="${fanCx}" cy="${fanCy}" r="${fanR+7}" fill="url(#fanGrad)" stroke="#2E4054" stroke-width="1.5"/>
     <circle cx="${fanCx}" cy="${fanCy}" r="${fanR}" fill="#16232E" stroke="#233542" stroke-width="2" id="fanHousing"/>
-    <g id="fanBlades">
-      <ellipse cx="${fanCx}" cy="${fanCy}" rx="${fanR-8}" ry="8" fill="none" stroke="#3A4E5C" stroke-width="3" id="fanBladeA"/>
-      <ellipse cx="${fanCx}" cy="${fanCy}" rx="8" ry="${fanR-8}" fill="none" stroke="#3A4E5C" stroke-width="3" id="fanBladeB"/>
+    <g id="fanBlades" style="color:#3A4E5C;">
+      ${Array.from({length:6},(_,i)=>{
+        const r = fanR-9;
+        const d = `M${fanCx+3},${fanCy-3} C ${fanCx+r*0.45},${fanCy-r*0.55} ${fanCx+r*0.85},${fanCy-r*0.22} ${fanCx+r},${fanCy} C ${fanCx+r*0.85},${fanCy+r*0.2} ${fanCx+r*0.4},${fanCy+r*0.18} ${fanCx+3},${fanCy+3} Z`;
+        return `<path d="${d}" transform="rotate(${i*60} ${fanCx} ${fanCy})" fill="currentColor" fill-opacity="0.32" stroke="currentColor" stroke-width="1.6"/>`;
+      }).join('')}
     </g>
     <circle cx="${fanCx}" cy="${fanCy}" r="5" fill="#0B141C" stroke="#5C7385"/>
     <text x="${fanCx}" y="${casingBot+20}" text-anchor="middle" class="lbl">EC FAN</text>
@@ -1993,10 +2090,16 @@ function renderSchematic(){
     <path d="${wavePath(filterX+2,fanX-2,casingTop+casingH/2-14,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCoil1" opacity="0"/>
     <path d="${wavePath(filterX+2,fanX-2,casingTop+casingH/2,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCoil2" opacity="0"/>
     <path d="${wavePath(filterX+2,fanX-2,casingTop+casingH/2+14,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCoil3" opacity="0"/>
-    <path d="${wavePath(fanX+2,fanX+fanW-15,casingTop+casingH/2,8)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCooled" opacity="0"/>
+    <path d="${wavePath(fanX+2,fanX+fanW-15,casingTop+casingH/2-14,7)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCooled1" opacity="0"/>
+    <path d="${wavePath(fanX+2,fanX+fanW-15,casingTop+casingH/2,7)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCooled2" opacity="0"/>
+    <path d="${wavePath(fanX+2,fanX+fanW-15,casingTop+casingH/2+14,7)}" fill="none" stroke="#35C7E0" stroke-width="2" stroke-linecap="round" class="duct-flow" id="waveCooled3" opacity="0"/>
 
     <!-- ===== Supply side ===== -->
+    <rect x="${fanX+fanW-3}" y="${fanCy-32}" width="6" height="64" rx="1.5" fill="#1C2C38" stroke="#3A4C5C" stroke-width="1"/>
+    ${[-26,-10,10,26].map(o=>`<circle cx="${fanX+fanW}" cy="${fanCy+o}" r="1.2" class="rivet"/>`).join('')}
     <path d="M${fanX+fanW},${fanCy-30} L${fanX+fanW+45},${fanCy-14} L${fanX+fanW+45},${fanCy+14} L${fanX+fanW},${fanCy+30} Z" fill="#131F29" stroke="#233542"/>
+    <rect x="${fanX+fanW+42}" y="${fanCy-16}" width="6" height="32" rx="1.5" fill="#1C2C38" stroke="#3A4C5C" stroke-width="1"/>
+    ${[-11,11].map(o=>`<circle cx="${fanX+fanW+45}" cy="${fanCy+o}" r="1.1" class="rivet"/>`).join('')}
     <path id="ductToSupply" class="duct" d="M${fanX+fanW+45},${fanCy} L865,${fanCy}" stroke="#233542"/>
     <path d="M735,${fanCy-7} L735,${fanCy+7} L751,${fanCy} Z" fill="#5C7385" id="supplyArrow" class="arrow-flow"/>
     <path d="M780,${fanCy-6} L780,${fanCy+6} L792,${fanCy} Z" fill="#5C7385" id="supplyArrow2" class="arrow-flow" style="animation-delay:0.5s;"/>
@@ -2027,10 +2130,10 @@ function renderSchematic(){
     <text x="330" y="416" text-anchor="middle" class="lbl">RETURN AIR (RAD)</text>
 
     <!-- ===== Equipment callouts (per as-built legend) ===== -->
-    ${callout(filterX+filterW/2, casingTop-14, 9, 'PRE-FILTER G4 (EN779) MERV.8')}
-    ${callout(coil1X+coil1W/2, casingTop-14, 8, 'COOLING COIL-1 (3R) 50.26/32.34 kW')}
-    ${callout(coil2X+coil2W/2, casingTop-14, 7, 'COOLING COIL-2 (6R) 93.28/51.88 kW')}
-    ${callout(fanCx, casingTop-14, 6, 'EC-FAN (MOTOR IE5) 10,000 CFM')}
+    ${callout(filterX+filterW/2, casingTop-14-depth, 9, 'PRE-FILTER G4 (EN779) MERV.8')}
+    ${callout(coil1X+coil1W/2, casingTop-14-depth, 8, 'COOLING COIL-1 (3R) 50.26/32.34 kW')}
+    ${callout(coil2X+coil2W/2, casingTop-14-depth, 7, 'COOLING COIL-2 (6R) 93.28/51.88 kW')}
+    ${callout(fanCx, casingTop-14-depth, 6, 'EC-FAN (MOTOR IE5) 10,000 CFM')}
     ${callout(760, fanCy-45, 10, 'SUPPLY AIR DUCT W/ INSULATION')}
     ${callout(90, 150, 11, 'RETURN AIR DUCT W/ INSULATION')}
     ${callout(90, casingBot+30, 12, 'FRESH AIR DUCT W/ VOLUME DAMPER')}
@@ -2060,9 +2163,14 @@ function updateSchematicState(states, activeMode){
     if(modeBadgeDot) modeBadgeDot.setAttribute('cx', boxX+18);
     modeBadgeText.setAttribute('x', boxX+30);
   }
-  ['waveIntake1','waveIntake2','waveIntake3','waveCoil1','waveCoil2','waveCoil3','waveCooled'].forEach(id=>{
+  ['waveIntake1','waveIntake2','waveIntake3','waveCoil1','waveCoil2','waveCoil3','waveCooled1','waveCooled2','waveCooled3'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.setAttribute('opacity', states.fanOn ? '0.85' : '0');
+  });
+  const waveModeColor = {precool:'#4CD787', operation:'#35C7E0', supercool:'#1B4FCC', auto:'#35C7E0'}[SIM.mode] || '#35C7E0';
+  ['waveCooled1','waveCooled2','waveCooled3'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.setAttribute('stroke', waveModeColor);
   });
   const c1fins = document.getElementById('coil1fins');
   const c2fins = document.getElementById('coil2fins');
@@ -2087,10 +2195,7 @@ function updateSchematicState(states, activeMode){
   if(fanHousing) fanHousing.setAttribute('fill', states.fanOn ? 'rgba(76,215,135,0.14)' : '#16232E');
   if(fanBlades){
     fanBlades.classList.toggle('fanspin', states.fanOn);
-    ['fanBladeA','fanBladeB'].forEach(id=>{
-      const b = document.getElementById(id);
-      if(b) b.setAttribute('stroke', states.fanOn ? '#4CD787' : '#3A4E5C');
-    });
+    fanBlades.style.color = states.fanOn ? '#4CD787' : '#3A4E5C';
   }
 
   const l1=document.getElementById('svgCw1Label'); if(l1){l1.textContent=states.cw1On?SIM.cw1Ret.toFixed(1)+'°C':'OFF'; l1.setAttribute('fill', states.cw1On?'#4CD787':'#7C8DA0');}
