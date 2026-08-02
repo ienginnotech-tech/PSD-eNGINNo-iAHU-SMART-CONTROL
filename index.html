@@ -827,6 +827,15 @@ function exportDashboardAnimatedSvg(reasonMsg){
     s.textContent = extraCss;
     clone.insertBefore(s, clone.firstChild);
   }
+  // explicit width/height (some mobile SVG viewers won't render a file with only viewBox)
+  clone.setAttribute('width', '1000');
+  clone.setAttribute('height', '460');
+  // opaque background so it isn't blank/white when opened outside the app's dark page
+  const bgRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  bgRect.setAttribute('x','0'); bgRect.setAttribute('y','0');
+  bgRect.setAttribute('width','1000'); bgRect.setAttribute('height','460');
+  bgRect.setAttribute('fill','#0B141C');
+  clone.insertBefore(bgRect, clone.firstChild);
   const svgString = new XMLSerializer().serializeToString(clone);
   const blob = new Blob([svgString], {type:'image/svg+xml'});
   const a = document.createElement('a');
