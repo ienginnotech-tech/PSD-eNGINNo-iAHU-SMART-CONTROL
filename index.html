@@ -1403,9 +1403,13 @@ function runSimTick(){
   const simHours = simMinutes/60;
 
   // airflow
-  const targetFlow = fanOn ? 10000*(SIM.fanSpeedPct/100) : 0;
-  SIM.airflow += (targetFlow - SIM.airflow)*0.35;
-  if(SIM.airflow < 15) SIM.airflow = 0;
+  if(SIM.fieldFrozen && SIM.a5!=null){
+    SIM.airflow = SIM.a5; // real field reading — don't let the fan-speed simulation override it
+  } else {
+    const targetFlow = fanOn ? 10000*(SIM.fanSpeedPct/100) : 0;
+    SIM.airflow += (targetFlow - SIM.airflow)*0.35;
+    if(SIM.airflow < 15) SIM.airflow = 0;
+  }
 
   // CW utilization ramps
   SIM.cw1ValvePct = resolved.cw1Pct;
@@ -1414,8 +1418,14 @@ function runSimTick(){
   SIM.cw2Util += ((cw2On?resolved.cw2Pct:0) - SIM.cw2Util)*0.3;
   const cw1Sp = getCw1Setpoint(activeMode);
   const cw2Sp = getCw2Setpoint(activeMode);
-  SIM.cw1Ret += ((cw1On? cw1Sp : cw1Sp+9) - SIM.cw1Ret)*0.25;
-  SIM.cw2Ret += ((cw2On? cw2Sp : cw2Sp+9) - SIM.cw2Ret)*0.25;
+  if(SIM.fieldFrozen && SIM.a2_cw1!=null && SIM.a2_cw2!=null){
+    // real field CHR-leaving readings — show exactly what was measured, in °C
+    SIM.cw1Ret = (SIM.a2_cw1-32)*5/9;
+    SIM.cw2Ret = (SIM.a2_cw2-32)*5/9;
+  } else {
+    SIM.cw1Ret += ((cw1On? cw1Sp : cw1Sp+9) - SIM.cw1Ret)*0.25;
+    SIM.cw2Ret += ((cw2On? cw2Sp : cw2Sp+9) - SIM.cw2Ret)*0.25;
+  }
 
   // ===== A1-A8 machine telemetry =====
   // In AUTO source these are computed from the running plant; in MANUAL they're pinned to
@@ -1478,22 +1488,26 @@ function runSimTick(){
   const qDeliverSens = fanOn ? 1.2*m3s*(SIM.roomTemp - tSupply) : 0; // +kW = net cooling delivered
   const qGainSensPeek = adm.qSensibleGain ?? 15;
   SIM.netHeating = fanOn && (cw1On||cw2On) && (qGainSensPeek > qDeliverSens);
-  const qGainSens = adm.qSensibleGain ?? 15; // kW, internal + envelope heat gain
-  const cRoom = Math.max(1, adm.roomThermalMass ?? 8); // kWh/°C
-  const dT = ((qGainSens - qDeliverSens)/cRoom)*simHours;
-  SIM.roomTemp += dT + (Math.random()-0.5)*0.02;
-  SIM.roomTemp = Math.max(15, Math.min(38, SIM.roomTemp));
 
-  // 4) room latent (moisture) balance: Q_latent(kW) = 2501 kJ/kg x mass flow(kg/s) x delta-w
-  const massFlowKgS = m3s*1.2; // dry air density ~1.2 kg/m3
-  const moistureRemovedKgHr = fanOn ? massFlowKgS*3600*Math.max(0, wRoom-wSupply) : 0;
-  const qLatentGain = adm.qLatentGain ?? 6; // kW of latent gain (people / infiltration)
-  const moistureGainKgHr = (qLatentGain*3600)/2501;
-  const roomAirMassKg = Math.max(100, adm.roomAirMass ?? 3600);
-  const dW = ((moistureGainKgHr - moistureRemovedKgHr)/roomAirMassKg)*simHours;
-  const newW = Math.max(0.002, wRoom + dW);
-  SIM.roomW = newW;
-  SIM.roomHumidity = rhFromHumidityRatio(SIM.roomTemp, newW);
+  if(!SIM.fieldFrozen){
+    const qGainSens = adm.qSensibleGain ?? 15; // kW, internal + envelope heat gain
+    const cRoom = Math.max(1, adm.roomThermalMass ?? 8); // kWh/°C
+    const dT = ((qGainSens - qDeliverSens)/cRoom)*simHours;
+    SIM.roomTemp += dT + (Math.random()-0.5)*0.02;
+    SIM.roomTemp = Math.max(15, Math.min(38, SIM.roomTemp));
+
+    // 4) room latent (moisture) balance: Q_latent(kW) = 2501 kJ/kg x mass flow(kg/s) x delta-w
+    const massFlowKgS = m3s*1.2; // dry air density ~1.2 kg/m3
+    const moistureRemovedKgHr = fanOn ? massFlowKgS*3600*Math.max(0, wRoom-wSupply) : 0;
+    const qLatentGain = adm.qLatentGain ?? 6; // kW of latent gain (people / infiltration)
+    const moistureGainKgHr = (qLatentGain*3600)/2501;
+    const roomAirMassKg = Math.max(100, adm.roomAirMass ?? 3600);
+    const dW = ((moistureGainKgHr - moistureRemovedKgHr)/roomAirMassKg)*simHours;
+    const newW = Math.max(0.002, wRoom + dW);
+    SIM.roomW = newW;
+    SIM.roomHumidity = rhFromHumidityRatio(SIM.roomTemp, newW);
+  }
+  // Field mode: Room Temp/Humidity are the real measured values from the sheet — left untouched above.
   if(!RUNTIME.telemetryManual) SIM.a7 = SIM.roomTemp; // Return Temp (°C) — return air ≈ room air, always in sync with the value just computed above
 
   // log a training sample for this mode's regression model (Room Temp / Humidity <- A1..A8)
@@ -1703,10 +1717,11 @@ const DEFAULT_TELEMETRY = {a1_cw1:43.7, a2_cw1:53.7, a6_cw1:23.0, a1_cw2:43.4, a
 function applyDefaultTelemetryValues(){
   Object.keys(DEFAULT_TELEMETRY).forEach(k=>{ SIM[k] = DEFAULT_TELEMETRY[k]; });
 }
-function setTelemetrySource(src){
+function setTelemetrySource(src, skipDefaults){
   const enteringManual = (src==='manual') && !RUNTIME.telemetryManual;
   RUNTIME.telemetryManual = (src==='manual');
-  if(enteringManual) applyDefaultTelemetryValues(); // A2=A1+10°F, A6=23/54 GPM, A3=55/A4=50 Psig — every time you switch into Manual
+  SIM.fieldFrozen = false; // any explicit Auto/Manual switch resets the freeze — fetchFromGoogleSheet re-enables it right after calling this
+  if(enteringManual && !skipDefaults) applyDefaultTelemetryValues(); // A2=A1+10°F, A6=23/54 GPM, A3=55/A4=50 Psig — every time you switch into Manual
   document.getElementById('teleAutoBtn').classList.toggle('active', !RUNTIME.telemetryManual);
   document.getElementById('teleManualBtn').classList.toggle('active', RUNTIME.telemetryManual);
   ['teleA1cw1','teleA2cw1','teleA6cw1','teleA1cw2','teleA2cw2','teleA6cw2','teleA3','teleA4','teleA5','teleA7','teleA8'].forEach(id=>{
@@ -2534,17 +2549,30 @@ async function fetchFromGoogleSheet(){
     if(roomTemp!=null){ SIM.roomTemp = roomTemp; SIM.roomW = humidityRatioFromRH(roomTemp, roomHumi ?? SIM.roomHumidity); }
     if(roomHumi!=null) SIM.roomHumidity = roomHumi;
 
+    // switch the app's active mode to whatever the technician logged for this reading
+    const modeMap = {'pre-cool':'precool','precool':'precool','1':'precool','operation':'operation','2':'operation','super cool':'supercool','supercool':'supercool','3':'supercool','auto':'auto','4':'auto'};
+    const sheetModeRaw = (data['Mode']||'').toString().trim().toLowerCase();
+    const mappedMode = modeMap[sheetModeRaw];
+    if(mappedMode){
+      RUNTIME.controlSource = 'manual';
+      RUNTIME.manualMode = mappedMode;
+      SIM.mode = mappedMode;
+    }
+
     RUNTIME.telemetryManual = true;
-    setTelemetrySource('manual');
+    setTelemetrySource('manual', true);
+    SIM.fieldFrozen = true; // real field reading — hold Room Temp/Humidity/Air Flow/CW Return exactly as measured, don't let the simulation drift them
     recomputeTR();
     updateTelemetry();
     renderDiagnostics();
+    renderControlSourceUI();
     const resolved = resolveActiveStates(SIM.mode);
     paintDashboard(resolved.activeMode, {cw1On:resolved.cw1On, cw2On:resolved.cw2On, fanOn:resolved.fanOn});
 
     if(statusEl){
       statusEl.style.color = 'var(--green)';
-      statusEl.textContent = `ดึงข้อมูลล่าสุดของ ${unit} สำเร็จ (Date: ${data['Date']||'-'} เวลา ${data['Time']||'-'} โดย ${data['Technician']||'-'})`;
+      const modeNote = mappedMode ? ` \u00b7 สลับโหมดเป็น ${MODE_META[mappedMode].name} ตามที่ช่างบันทึกไว้` : '';
+      statusEl.textContent = `ดึงข้อมูลล่าสุดของ ${unit} สำเร็จ (Date: ${data['Date']||'-'} เวลา ${data['Time']||'-'} โดย ${data['Technician']||'-'}) — ค่าถูกตรึงไว้ตามที่วัดจริง จะไม่เปลี่ยนเองจนกว่าจะกด Auto Input หรือดึงข้อมูลใหม่${modeNote}`;
     }
     toast(`ดึงข้อมูลจาก Google Sheet สำเร็จ (${unit})`);
   }catch(err){
