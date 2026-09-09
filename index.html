@@ -224,6 +224,7 @@ a{color:var(--cyan);}
 .diag-item.warn .diag-title{color:var(--amber);}
 .diag-item.critical .diag-title{color:var(--red);}
 .diag-detail{font-size:11.5px; color:var(--text-dim); margin-top:3px; line-height:1.5;}
+body.manual-data-mode .automatic-only{display:none !important;}
 .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px;}
 .modal-box{background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:24px; width:100%; max-width:480px; max-height:85vh; overflow-y:auto;}
 .modal-title{font-family:var(--font-mono); font-size:15px; font-weight:700; margin-bottom:18px;}
@@ -381,7 +382,7 @@ tr:last-child td{border-bottom:none;}
     <section id="screen-dashboard">
       <div class="topbar">
         <div>
-          <h1>ภาพรวมระบบ &middot; AHU-01</h1>
+          <h1 id="dashboardTitle">ภาพรวมระบบ &middot; AHU-01</h1>
           <div class="subtitle">BITEC BURI &nbsp;/&nbsp; งานติดตั้งเครื่องปรับอากาศ (AHU) &nbsp;/&nbsp; อ้างอิงแบบ AC-D-01</div>
         </div>
         <div class="top-actions">
@@ -390,6 +391,24 @@ tr:last-child td{border-bottom:none;}
           <div class="status-pill" id="topStatusPill" class="mono"><span class="blip"></span><span id="topStatusText">-</span></div>
         </div>
       </div>
+
+      <div class="panel" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:18px;">
+        <div>
+          <div class="section-title" style="margin:0 0 8px;">Data System Mode</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <span class="pill-btn" id="dsmManualBtn" onclick="setDataSystemMode('manual')">Manual Data System (Google Sheet)</span>
+            <span class="pill-btn" id="dsmAutoBtn" onclick="setDataSystemMode('automatic')">Automatic Data System (Simulated &middot; รอ IoT)</span>
+          </div>
+        </div>
+        <div>
+          <div class="section-title" style="margin:0 0 8px;">Monitoring</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <span class="pill-btn" id="unitAHU01Btn" onclick="setMonitorUnit('AHU-01')">AHU-01</span>
+            <span class="pill-btn" id="unitAHU02Btn" onclick="setMonitorUnit('AHU-02')">AHU-02</span>
+          </div>
+        </div>
+      </div>
+      <div class="small-note" id="dataSystemNote" style="margin-bottom:18px;"></div>
 
       <div class="grid grid-cols-4">
         <div class="metric">
@@ -430,8 +449,8 @@ tr:last-child td{border-bottom:none;}
       <div class="section-title">โหมดการทำงาน (Operating Mode)</div>
       <div class="mode-badges" id="modeBadges"></div>
 
-      <div class="section-title">แหล่งควบคุม (Control Source)</div>
-      <div class="panel" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+      <div class="section-title automatic-only">แหล่งควบคุม (Control Source)</div>
+      <div class="panel automatic-only" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <span class="pill-btn" id="srcManualBtn" onclick="setControlSource('manual')">Manual Override</span>
           <span class="pill-btn" id="srcScheduleBtn" onclick="setControlSource('schedule')">Follow Schedule</span>
@@ -443,9 +462,9 @@ tr:last-child td{border-bottom:none;}
           <span class="pill-btn" data-m="auto" onclick="setManualMode('auto')">4&middot;Auto</span>
         </div>
       </div>
-      <div class="small-note" id="controlSourceNote"></div>
+      <div class="small-note automatic-only" id="controlSourceNote"></div>
 
-      <div class="section-title">Air Flow Schematic &middot; AHU-01</div>
+      <div class="section-title" id="schematicSectionTitle">Air Flow Schematic &middot; AHU-01</div>
       <div class="schematic-wrap">
         <div id="schematicHost"></div>
         <div class="legend-grid">
@@ -460,8 +479,8 @@ tr:last-child td{border-bottom:none;}
         </div>
       </div>
 
-      <div class="section-title">DIAGNOSTICS &middot; วิเคราะห์สาเหตุ (Root Cause Analysis)</div>
-      <div class="panel">
+      <div class="section-title automatic-only">DIAGNOSTICS &middot; วิเคราะห์สาเหตุ (Root Cause Analysis)</div>
+      <div class="panel automatic-only">
         <div class="small-note" style="margin-bottom:10px;">วิเคราะห์อัตโนมัติทุก tick จาก TR แต่ละคอยล์เทียบ Design, Air Flow, Pressure Drop, และ A7 Return Temp เทียบกับ Setpoint+Load — ใช้แทนการเดาสาเหตุหน้างาน</div>
         <div id="diagnosticsList"></div>
       </div>
@@ -480,7 +499,7 @@ tr:last-child td{border-bottom:none;}
       <div class="schematic-wrap">
         <div class="tele-grid-header">
           <div class="tele-grid-title">A1&ndash;A8 MACHINE PARAMETERS</div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <div class="automatic-only" style="display:flex; gap:6px; flex-wrap:wrap;">
             <span class="pill-btn" id="teleAutoBtn" onclick="setTelemetrySource('auto')">Auto Input</span>
             <span class="pill-btn" id="teleManualBtn" onclick="setTelemetrySource('manual')">Manual Input</span>
             <span class="pill-btn" onclick="resetTelemetryDefaults()">&#8635; ค่าเริ่มต้น A1&ndash;A8</span>
@@ -513,11 +532,12 @@ tr:last-child td{border-bottom:none;}
           <div class="tele-item"><div class="tele-label">A8 &middot; FRESH AIR TEMP</div><div class="tele-val"><input type="number" step="0.1" id="teleA8" class="tele-input" disabled onchange="setTelemetryValue('a8', this.value)"><span class="tele-unit">&deg;C</span></div><div class="tele-sub" id="teleA8f">&asymp; -- &deg;F</div></div>
         </div>
         <div class="small-note" id="teleNote" style="margin-top:8px;">โหมด Auto: ระบบคำนวณ A1&ndash;A8 จากสถานะพลานท์จริงทุก tick</div>
-        <div id="testResultBox" class="hidden" style="margin-top:10px; background:var(--panel2); border:1px solid var(--green); border-radius:6px; padding:12px 14px;">
+        <div id="testResultBox" class="hidden automatic-only" style="margin-top:10px; background:var(--panel2); border:1px solid var(--green); border-radius:6px; padding:12px 14px;">
           <div style="font-size:10px; color:var(--text-faint); font-family:var(--font-mono); letter-spacing:0.5px; margin-bottom:6px;">ผลลัพธ์ที่สภาวะคงตัว (STEADY-STATE PREVIEW) &middot; ไม่กระทบค่าจริงที่กำลังรันอยู่</div>
           <div id="testResultText" class="mono" style="font-size:13px; line-height:1.8;"></div>
         </div>
 
+        <div class="automatic-only">
         <div class="tele-grid-header" style="margin-top:18px;">
           <div class="tele-grid-title">ROOM LOAD CALCULATION INPUTS</div>
           <span class="pill-btn" onclick="resetRoomLoadDefaults()">&#8635; รีเซ็ตเป็นค่าเริ่มต้น</span>
@@ -534,6 +554,7 @@ tr:last-child td{border-bottom:none;}
         </div>
         <div class="small-note" style="margin-top:8px;">Q<sub>sensible</sub> = (Occupancy&times;W<sub>sens</sub> + Area&times;Lighting + Area&times;Envelope) &divide; 1000 &middot; Q<sub>latent</sub> = (Occupancy&times;W<sub>lat</sub>) &divide; 1000 &middot; ค่าที่คำนวณได้จะแทนที่ Q Sensible/Latent Gain ใน Physics Engine โดยอัตโนมัติทุกครั้งที่แก้ไข</div>
         <div id="loadWarning" class="small-note hidden" style="color:var(--red); margin-top:6px;"></div>
+        </div>
       </div>
     </section>
 
@@ -920,6 +941,8 @@ function defaultRuntime(){
     events:[],
     controlSource:'manual',
     manualMode:'precool',
+    dataSystemMode:'automatic', // 'automatic' = simulated engine (placeholder until real IoT), 'manual' = Google Sheet field log only
+    monitorUnit:'AHU-01',
     admin:{project:'BITEC BURI', roomTarget:25, roomTol:2, simRate:5, humiditySetpoint:60,
            qSensibleGain:15, qLatentGain:6, roomThermalMass:8, roomAirMass:3600,
            oaFraction:15, bfCW1:0.18, bfCW2:0.08, freshAirRH:75,
@@ -1089,6 +1112,8 @@ async function bootApp(){
     Object.keys(dAdm).forEach(k=>{ if(RUNTIME.admin[k]===undefined) RUNTIME.admin[k]=dAdm[k]; });
   }
   if(RUNTIME.telemetryManual===undefined) RUNTIME.telemetryManual = false;
+  if(!RUNTIME.dataSystemMode) RUNTIME.dataSystemMode = 'automatic';
+  if(!RUNTIME.monitorUnit) RUNTIME.monitorUnit = RUNTIME.admin.sheetUnit || 'AHU-01';
   if(!RUNTIME.roomLoad) RUNTIME.roomLoad = defaultRuntime().roomLoad;
   if(!RUNTIME.regressionSamples) RUNTIME.regressionSamples = defaultRuntime().regressionSamples;
   if(!RUNTIME.regression) RUNTIME.regression = defaultRuntime().regression;
@@ -1135,13 +1160,66 @@ async function bootApp(){
   document.getElementById('loadEnvelope').value = RUNTIME.roomLoad.envelope;
   updateRoomLoad();
   setTelemetrySource(RUNTIME.telemetryManual ? 'manual' : 'auto');
+  applyDataSystemModeUI();
+  applyMonitorUnitUI();
   runSimTick(); // initial paint
   renderReports();
 
   clearInterval(simTimer);
   clearInterval(saveTimer);
-  simTimer = setInterval(runSimTick, 3000);
+  if(RUNTIME.dataSystemMode!=='manual'){
+    simTimer = setInterval(runSimTick, 3000);
+  }
   saveTimer = setInterval(persistRuntime, 15000);
+}
+
+/* ================= DATA SYSTEM MODE (Manual field log vs Automatic simulation) ================= */
+function applyDataSystemModeUI(){
+  const isManual = RUNTIME.dataSystemMode === 'manual';
+  document.body.classList.toggle('manual-data-mode', isManual);
+  const mBtn = document.getElementById('dsmManualBtn');
+  const aBtn = document.getElementById('dsmAutoBtn');
+  if(mBtn) mBtn.classList.toggle('active', isManual);
+  if(aBtn) aBtn.classList.toggle('active', !isManual);
+  const note = document.getElementById('dataSystemNote');
+  if(note) note.textContent = isManual
+    ? 'โหมด Manual Data System: แสดงเฉพาะข้อมูลจริงที่ช่างกรอกใน Google Sheet เท่านั้น ไม่มีการจำลอง/คำนวณใดๆ ทับซ้อน — กด "ดึงข้อมูลล่าสุดจาก Google Sheet" ที่หน้า Admin เพื่ออัปเดต'
+    : 'โหมด Automatic Data System: ใช้เครื่องยนต์จำลอง (Physics Engine) ชั่วคราว จนกว่าจะเชื่อมต่อ Sensor/IoT จริงในเฟสถัดไป';
+}
+function applyMonitorUnitUI(){
+  const u1 = document.getElementById('unitAHU01Btn');
+  const u2 = document.getElementById('unitAHU02Btn');
+  if(u1) u1.classList.toggle('active', RUNTIME.monitorUnit==='AHU-01');
+  if(u2) u2.classList.toggle('active', RUNTIME.monitorUnit==='AHU-02');
+  const sel = document.getElementById('admSheetUnit');
+  if(sel) sel.value = RUNTIME.monitorUnit;
+  const unitLabel = RUNTIME.monitorUnit || 'AHU-01';
+  const dTitle = document.getElementById('dashboardTitle');
+  if(dTitle) dTitle.innerHTML = `ภาพรวมระบบ &middot; ${unitLabel}`;
+  const sTitle = document.getElementById('schematicSectionTitle');
+  if(sTitle) sTitle.innerHTML = `Air Flow Schematic &middot; ${unitLabel}`;
+  const ahuTitle = document.getElementById('svgAhuTitle');
+  if(ahuTitle) ahuTitle.textContent = `${unitLabel} \u00b7 10,000 CFM`;
+}
+function setDataSystemMode(mode){
+  RUNTIME.dataSystemMode = mode;
+  applyDataSystemModeUI();
+  clearInterval(simTimer);
+  if(mode==='manual'){
+    fetchFromGoogleSheet();
+  } else {
+    simTimer = setInterval(runSimTick, 3000);
+    runSimTick();
+  }
+  persistRuntime();
+  toast(mode==='manual' ? 'สลับเป็น Manual Data System (Google Sheet)' : 'สลับเป็น Automatic Data System (Simulated)');
+}
+function setMonitorUnit(unit){
+  RUNTIME.monitorUnit = unit;
+  RUNTIME.admin.sheetUnit = unit;
+  applyMonitorUnitUI();
+  persistRuntime();
+  if(RUNTIME.dataSystemMode==='manual') fetchFromGoogleSheet();
 }
 
 /* ================= NAV ================= */
@@ -1418,10 +1496,14 @@ function runSimTick(){
   SIM.cw2Util += ((cw2On?resolved.cw2Pct:0) - SIM.cw2Util)*0.3;
   const cw1Sp = getCw1Setpoint(activeMode);
   const cw2Sp = getCw2Setpoint(activeMode);
-  if(SIM.fieldFrozen && SIM.a2_cw1!=null && SIM.a2_cw2!=null){
-    // real field CHR-leaving readings — show exactly what was measured, in °C
-    SIM.cw1Ret = (SIM.a2_cw1-32)*5/9;
-    SIM.cw2Ret = (SIM.a2_cw2-32)*5/9;
+  if(SIM.fieldFrozen){
+    if(SIM.coilTempCw1!=null) SIM.cw1Ret = SIM.coilTempCw1;
+    else if(SIM.a2_cw1!=null) SIM.cw1Ret = (SIM.a2_cw1-32)*5/9;
+    else SIM.cw1Ret += ((cw1On? cw1Sp : cw1Sp+9) - SIM.cw1Ret)*0.25;
+
+    if(SIM.coilTempCw2!=null) SIM.cw2Ret = SIM.coilTempCw2;
+    else if(SIM.a2_cw2!=null) SIM.cw2Ret = (SIM.a2_cw2-32)*5/9;
+    else SIM.cw2Ret += ((cw2On? cw2Sp : cw2Sp+9) - SIM.cw2Ret)*0.25;
   } else {
     SIM.cw1Ret += ((cw1On? cw1Sp : cw1Sp+9) - SIM.cw1Ret)*0.25;
     SIM.cw2Ret += ((cw2On? cw2Sp : cw2Sp+9) - SIM.cw2Ret)*0.25;
@@ -2119,7 +2201,15 @@ function renderSchematic(){
     <text x="${fanCx}" y="${casingBot+20}" text-anchor="middle" class="lbl">EC FAN</text>
     <text x="${fanCx}" y="${casingBot+34}" text-anchor="middle" class="val" id="svgFanLabel" fill="#7C8DA0">OFF</text>
 
-    <text x="${filterX-68}" y="${casingTop-30}" class="lbl" fill="#E7EEF3" font-size="12" font-weight="700">AHU-01 &middot; 10,000 CFM</text>
+    <text x="${filterX-68}" y="${casingTop-30}" class="lbl" fill="#E7EEF3" font-size="12" font-weight="700" id="svgAhuTitle">AHU-01 &middot; 10,000 CFM</text>
+
+    <!-- Date/Time of the currently displayed reading (relevant in Manual Data System mode) -->
+    <rect x="10" y="8" width="150" height="42" rx="4" fill="#131F29" stroke="#233542" stroke-width="1"/>
+    <text x="18" y="24" class="lbl-sm">DATE</text>
+    <text x="18" y="40" class="val" font-size="12" fill="#35C7E0" id="svgDateLabel">--</text>
+    <rect x="168" y="8" width="130" height="42" rx="4" fill="#131F29" stroke="#233542" stroke-width="1"/>
+    <text x="176" y="24" class="lbl-sm">TIME</text>
+    <text x="176" y="40" class="val" font-size="12" fill="#35C7E0" id="svgTimeLabel">--</text>
 
     <!-- ===== Mode badge (baked in so it survives GIF/SVG export) ===== -->
     <rect x="760" y="8" width="230" height="30" rx="15" fill="#131F29" stroke="#35C7E0" stroke-width="1.4" id="modeBadgeBox"/>
@@ -2185,6 +2275,24 @@ function renderSchematic(){
 }
 
 function updateSchematicState(states, activeMode){
+  const unitLabel = RUNTIME.monitorUnit || 'AHU-01';
+  const ahuTitle = document.getElementById('svgAhuTitle');
+  if(ahuTitle) ahuTitle.textContent = `${unitLabel} \u00b7 10,000 CFM`;
+  const dateEl = document.getElementById('svgDateLabel');
+  const timeEl = document.getElementById('svgTimeLabel');
+  if(dateEl && timeEl){
+    if(RUNTIME.dataSystemMode==='manual' && SIM.sheetDate){
+      dateEl.textContent = SIM.sheetDate;
+      timeEl.textContent = SIM.sheetTime || '--';
+    } else if(RUNTIME.dataSystemMode==='manual'){
+      dateEl.textContent = 'ยังไม่ได้ดึงข้อมูล';
+      timeEl.textContent = '--';
+    } else {
+      const now = new Date();
+      dateEl.textContent = now.toLocaleDateString('th-TH');
+      timeEl.textContent = now.toLocaleTimeString('th-TH');
+    }
+  }
   const modeBadgeText = document.getElementById('modeBadgeText');
   const modeBadgeBox = document.getElementById('modeBadgeBox');
   const modeBadgeDot = document.getElementById('modeBadgeDot');
@@ -2509,7 +2617,7 @@ async function saveSheetApiConfig(){
 async function fetchFromGoogleSheet(){
   const statusEl = document.getElementById('sheetFetchStatus');
   const url = (document.getElementById('admSheetApiUrl').value || RUNTIME.admin.sheetApiUrl || '').trim();
-  const unit = document.getElementById('admSheetUnit').value || RUNTIME.admin.sheetUnit || 'AHU-01';
+  const unit = RUNTIME.monitorUnit || document.getElementById('admSheetUnit').value || RUNTIME.admin.sheetUnit || 'AHU-01';
   if(!url){ if(statusEl) statusEl.textContent = 'ยังไม่ได้ใส่ Web App URL'; return; }
   if(statusEl){ statusEl.textContent = 'กำลังดึงข้อมูล...'; statusEl.style.color = 'var(--text-faint)'; }
   try{
@@ -2533,6 +2641,10 @@ async function fetchFromGoogleSheet(){
     const a8 = num('Fresh Air Temp (°C)');
     const roomTemp = num('Room Temp (°C)');
     const roomHumi = num('Room Humidity (%RH)');
+    const coilTempCw1 = num('CW-1 Coil temp (°C)');
+    const coilTempCw2 = num('CW-2 Coil temp (°C)_supply');
+    SIM.sheetDate = data['Date'] ? String(data['Date']) : null;
+    SIM.sheetTime = data['Time'] ? String(data['Time']) : null;
 
     if(a1cw1!=null) SIM.a1_cw1 = a1cw1;
     if(a2cw1!=null) SIM.a2_cw1 = a2cw1;
