@@ -638,6 +638,23 @@ tr:last-child td{border-bottom:none;}
         <button class="btn btn-solid" style="margin-top:14px;" onclick="saveAdminConfig()">บันทึกค่า Physics Engine</button>
         <div class="small-note" style="margin-top:10px;">สูตรที่ใช้: Q<sub>sensible</sub>(kW) = 1.2 &times; m&sup3;/s &times; &Delta;T(&deg;C) &middot; Q<sub>latent</sub>(kW) = 2501 &times; kg/s &times; &Delta;w &middot; คอยล์ใช้โมเดล ADP + Bypass Factor (ADP &asymp; CHS Entering +1&deg;C) &middot; TR = &Delta;T(&deg;F) &times; GPM &divide; 24</div>
       </div>
+
+      <div class="section-title" style="margin-top:22px;">Google Sheet Integration (Manual Log &rarr; App)</div>
+      <div class="panel">
+        <div class="small-note" style="margin-bottom:14px;">ดึงแถวล่าสุดที่ช่างกรอกไว้ใน Google Sheet มาใส่ A1&ndash;A8 และ Room Temp/Humidity ในแอปโดยตรง — ต้อง Deploy Google Apps Script เป็น Web App ก่อน (ดูโค้ดที่แชทให้ไว้)</div>
+        <div class="grid grid-cols-2">
+          <div class="field"><label>Web App URL (จบด้วย /exec)</label><input id="admSheetApiUrl" type="text" placeholder="https://script.google.com/macros/s/XXXXX/exec"></div>
+          <div class="field"><label>AHU Unit ที่จะดึง</label>
+            <select id="admSheetUnit">
+              <option value="AHU-01">AHU-01</option>
+              <option value="AHU-02">AHU-02</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-solid" style="margin-top:10px;" onclick="saveSheetApiConfig()">บันทึก URL</button>
+        <button class="btn btn-ghost" style="margin-top:10px;" onclick="fetchFromGoogleSheet()">&#8635; ดึงข้อมูลล่าสุดจาก Google Sheet ตอนนี้</button>
+        <div class="small-note" id="sheetFetchStatus" style="margin-top:10px;"></div>
+      </div>
     </section>
 
   </div>
@@ -907,7 +924,7 @@ function defaultRuntime(){
            qSensibleGain:15, qLatentGain:6, roomThermalMass:8, roomAirMass:3600,
            oaFraction:15, bfCW1:0.18, bfCW2:0.08, freshAirRH:75,
            designTRcw1: Math.round((32.34/3.517)*10)/10, designTRcw2: Math.round((51.88/3.517)*10)/10,
-           returnLoadRise:4},
+           returnLoadRise:4, sheetApiUrl:'', sheetUnit:'AHU-01'},
     telemetryManual:false,
     roomLoad:{area:500, occupancy:150, personSens:75, personLat:55, lighting:12, envelope:25},
     regressionSamples:{precool:[], operation:[], supercool:[], auto:[]},
@@ -1101,6 +1118,8 @@ async function bootApp(){
   document.getElementById('admDesignTRcw1').value = RUNTIME.admin.designTRcw1 ?? 9.2;
   document.getElementById('admDesignTRcw2').value = RUNTIME.admin.designTRcw2 ?? 14.8;
   document.getElementById('admReturnRise').value = RUNTIME.admin.returnLoadRise ?? 4;
+  document.getElementById('admSheetApiUrl').value = RUNTIME.admin.sheetApiUrl ?? '';
+  document.getElementById('admSheetUnit').value = RUNTIME.admin.sheetUnit ?? 'AHU-01';
 
   renderDayPicker();
   renderParamCards();
@@ -2466,6 +2485,73 @@ async function deleteUser(username){
   await sSet('users', USERS);
   renderAdminUsers();
 }
+async function saveSheetApiConfig(){
+  RUNTIME.admin.sheetApiUrl = document.getElementById('admSheetApiUrl').value.trim();
+  RUNTIME.admin.sheetUnit = document.getElementById('admSheetUnit').value;
+  await sSet('runtime', RUNTIME);
+  toast('บันทึก Google Sheet API URL แล้ว');
+}
+async function fetchFromGoogleSheet(){
+  const statusEl = document.getElementById('sheetFetchStatus');
+  const url = (document.getElementById('admSheetApiUrl').value || RUNTIME.admin.sheetApiUrl || '').trim();
+  const unit = document.getElementById('admSheetUnit').value || RUNTIME.admin.sheetUnit || 'AHU-01';
+  if(!url){ if(statusEl) statusEl.textContent = 'ยังไม่ได้ใส่ Web App URL'; return; }
+  if(statusEl){ statusEl.textContent = 'กำลังดึงข้อมูล...'; statusEl.style.color = 'var(--text-faint)'; }
+  try{
+    const resp = await fetch(url + '?unit=' + encodeURIComponent(unit));
+    const data = await resp.json();
+    if(!data._found){
+      if(statusEl){ statusEl.textContent = `ไม่พบข้อมูลของ ${unit} ใน Google Sheet`; statusEl.style.color = 'var(--amber)'; }
+      return;
+    }
+    const num = (key) => { const v = parseFloat(data[key]); return isNaN(v) ? null : v; };
+    const a1cw1 = num('CW-1 CHS Entering (°F)');
+    const a2cw1 = num('CW-1 CHR Leaving (°F)');
+    const a6cw1 = num('CW-1 Water Flow (GPM)');
+    const a1cw2 = num('CW-2 CHS Entering (°F)');
+    const a2cw2 = num('CW-2 CHR Leaving (°F)');
+    const a6cw2 = num('CW-2 Water Flow (GPM)');
+    const a3 = num('Pressure Entering (Psig)');
+    const a4 = num('Pressure Leaving (Psig)');
+    const a5 = num('Air Flow (CFM)');
+    const a7 = num('Return Temp (°C)');
+    const a8 = num('Fresh Air Temp (°C)');
+    const roomTemp = num('Room Temp (°C)');
+    const roomHumi = num('Room Humidity (%RH)');
+
+    if(a1cw1!=null) SIM.a1_cw1 = a1cw1;
+    if(a2cw1!=null) SIM.a2_cw1 = a2cw1;
+    if(a6cw1!=null) SIM.a6_cw1 = a6cw1;
+    if(a1cw2!=null) SIM.a1_cw2 = a1cw2;
+    if(a2cw2!=null) SIM.a2_cw2 = a2cw2;
+    if(a6cw2!=null) SIM.a6_cw2 = a6cw2;
+    if(a3!=null) SIM.a3 = a3;
+    if(a4!=null) SIM.a4 = a4;
+    if(a5!=null) SIM.a5 = a5;
+    if(a7!=null) SIM.a7 = a7;
+    if(a8!=null) SIM.a8 = a8;
+    // real field measurements override the simulated Room Temp/Humidity directly — no need to guess via physics
+    if(roomTemp!=null){ SIM.roomTemp = roomTemp; SIM.roomW = humidityRatioFromRH(roomTemp, roomHumi ?? SIM.roomHumidity); }
+    if(roomHumi!=null) SIM.roomHumidity = roomHumi;
+
+    RUNTIME.telemetryManual = true;
+    setTelemetrySource('manual');
+    recomputeTR();
+    updateTelemetry();
+    renderDiagnostics();
+    const resolved = resolveActiveStates(SIM.mode);
+    paintDashboard(resolved.activeMode, {cw1On:resolved.cw1On, cw2On:resolved.cw2On, fanOn:resolved.fanOn});
+
+    if(statusEl){
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = `ดึงข้อมูลล่าสุดของ ${unit} สำเร็จ (Date: ${data['Date']||'-'} เวลา ${data['Time']||'-'} โดย ${data['Technician']||'-'})`;
+    }
+    toast(`ดึงข้อมูลจาก Google Sheet สำเร็จ (${unit})`);
+  }catch(err){
+    console.error('fetchFromGoogleSheet failed', err);
+    if(statusEl){ statusEl.textContent = 'ดึงข้อมูลไม่สำเร็จ — เช็ค URL หรือว่า Deploy เป็น Anyone access หรือยัง'; statusEl.style.color = 'var(--red)'; }
+  }
+}
 async function saveAdminConfig(){
   RUNTIME.admin = {
     project: document.getElementById('admProject').value,
@@ -2483,7 +2569,9 @@ async function saveAdminConfig(){
     bfCW2: parseFloat(document.getElementById('admBfCw2').value),
     designTRcw1: parseFloat(document.getElementById('admDesignTRcw1').value),
     designTRcw2: parseFloat(document.getElementById('admDesignTRcw2').value),
-    returnLoadRise: parseFloat(document.getElementById('admReturnRise').value)
+    returnLoadRise: parseFloat(document.getElementById('admReturnRise').value),
+    sheetApiUrl: RUNTIME.admin.sheetApiUrl,
+    sheetUnit: RUNTIME.admin.sheetUnit
   };
   await sSet('runtime', RUNTIME);
   toast('บันทึกการตั้งค่าระบบแล้ว');
