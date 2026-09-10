@@ -1146,7 +1146,6 @@ async function bootApp(){
   document.getElementById('admDesignTRcw2').value = RUNTIME.admin.designTRcw2 ?? 14.8;
   document.getElementById('admReturnRise').value = RUNTIME.admin.returnLoadRise ?? 4;
   document.getElementById('admSheetApiUrl').value = RUNTIME.admin.sheetApiUrl ?? '';
-  document.getElementById('admSheetUnit').value = RUNTIME.admin.sheetUnit ?? 'AHU-01';
 
   renderDayPicker();
   renderParamCards();
@@ -2610,7 +2609,7 @@ async function deleteUser(username){
 }
 async function saveSheetApiConfig(){
   RUNTIME.admin.sheetApiUrl = document.getElementById('admSheetApiUrl').value.trim();
-  RUNTIME.admin.sheetUnit = document.getElementById('admSheetUnit').value;
+  RUNTIME.admin.sheetUnit = RUNTIME.monitorUnit || 'AHU-01';
   await sSet('runtime', RUNTIME);
   toast('บันทึก Google Sheet API URL แล้ว');
 }
