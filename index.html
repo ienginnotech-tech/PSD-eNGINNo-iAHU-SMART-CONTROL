@@ -2100,9 +2100,6 @@ function renderSchematic(){
         <stop offset="0%" stop-color="#374F63"/>
         <stop offset="100%" stop-color="#4C6B82"/>
       </linearGradient>
-      <filter id="casingShadow" x="-20%" y="-20%" width="140%" height="180%">
-        <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000000" flood-opacity="0.6"/>
-      </filter>
       <style>
         .lbl{font-family:'JetBrains Mono',monospace; font-size:10px; fill:#7C8DA0;}
         .lbl-sm{font-family:'JetBrains Mono',monospace; font-size:8.5px; fill:#5C7385;}
@@ -2119,7 +2116,10 @@ function renderSchematic(){
     </defs>
 
     <!-- ===== Outer AHU casing (metallic panel look, isometric depth) ===== -->
-    <g filter="url(#casingShadow)">
+    <!-- simple offset shadow shapes (no SVG filter — filters can silently fail/clip in some browsers) -->
+    <rect x="${filterX-70+5}" y="${casingTop+8}" width="${(fanX+fanW)-(filterX-70)}" height="${casingH}" rx="6" fill="#000000" opacity="0.28"/>
+    <path d="M${fanX+fanW+5},${casingTop+8} L${fanX+fanW+depth+5},${casingTop-depth+8} L${fanX+fanW+depth+5},${casingBot-depth+8} L${fanX+fanW+5},${casingBot+8} Z" fill="#000000" opacity="0.2"/>
+    <g>
       <!-- right end-cap (depth side, shadowed) -->
       <path d="M${fanX+fanW},${casingTop} L${fanX+fanW+depth},${casingTop-depth} L${fanX+fanW+depth},${casingBot-depth} L${fanX+fanW},${casingBot} Z" fill="#0A1119" stroke="#3D5972" stroke-width="1.2"/>
       <!-- left end-cap (depth side, shadowed) -->
