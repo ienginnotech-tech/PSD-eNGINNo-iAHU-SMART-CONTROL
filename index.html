@@ -2075,15 +2075,15 @@ function renderSchematic(){
     <defs>
       <clipPath id="filterClip"><rect x="${filterX}" y="${casingTop}" width="${filterW}" height="${casingH}"/></clipPath>
       <linearGradient id="casingGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#233241"/>
-        <stop offset="8%" stop-color="#1B2836"/>
-        <stop offset="55%" stop-color="#131E28"/>
-        <stop offset="100%" stop-color="#0C141C"/>
+        <stop offset="0%" stop-color="#31465B"/>
+        <stop offset="8%" stop-color="#223444"/>
+        <stop offset="55%" stop-color="#16232E"/>
+        <stop offset="100%" stop-color="#0A1119"/>
       </linearGradient>
       <linearGradient id="casingSheen" x1="0" y1="0" x2="1" y2="0.3">
         <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
-        <stop offset="45%" stop-color="#ffffff" stop-opacity="0.05"/>
-        <stop offset="52%" stop-color="#ffffff" stop-opacity="0.09"/>
+        <stop offset="45%" stop-color="#ffffff" stop-opacity="0.09"/>
+        <stop offset="52%" stop-color="#ffffff" stop-opacity="0.16"/>
         <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
@@ -2097,11 +2097,11 @@ function renderSchematic(){
         <stop offset="100%" stop-color="#0C141C"/>
       </radialGradient>
       <linearGradient id="topFaceGrad" x1="0" y1="1" x2="0" y2="0">
-        <stop offset="0%" stop-color="#2A3B4A"/>
-        <stop offset="100%" stop-color="#3B5062"/>
+        <stop offset="0%" stop-color="#374F63"/>
+        <stop offset="100%" stop-color="#4C6B82"/>
       </linearGradient>
       <filter id="casingShadow" x="-20%" y="-20%" width="140%" height="180%">
-        <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/>
+        <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000000" flood-opacity="0.6"/>
       </filter>
       <style>
         .lbl{font-family:'JetBrains Mono',monospace; font-size:10px; fill:#7C8DA0;}
@@ -2109,7 +2109,7 @@ function renderSchematic(){
         .val{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;}
         .duct{fill:none; stroke:#233542; stroke-width:9; stroke-linecap:round;}
         .thin{fill:none; stroke:#2A3945; stroke-width:1.4;}
-        .rivet{fill:#3A4C5C; stroke:#0C141C; stroke-width:0.6;}
+        .rivet{fill:#4A6178; stroke:#0C141C; stroke-width:0.6;}
         #fanBlades{transform-origin:${fanCx}px ${fanCy}px;}
         .fanspin{animation:fanspin 1.3s linear infinite;}
         @keyframes fanspin{to{transform:rotate(360deg);}}
@@ -2121,13 +2121,13 @@ function renderSchematic(){
     <!-- ===== Outer AHU casing (metallic panel look, isometric depth) ===== -->
     <g filter="url(#casingShadow)">
       <!-- right end-cap (depth side, shadowed) -->
-      <path d="M${fanX+fanW},${casingTop} L${fanX+fanW+depth},${casingTop-depth} L${fanX+fanW+depth},${casingBot-depth} L${fanX+fanW},${casingBot} Z" fill="#0A1119" stroke="#2E4054" stroke-width="1.2"/>
+      <path d="M${fanX+fanW},${casingTop} L${fanX+fanW+depth},${casingTop-depth} L${fanX+fanW+depth},${casingBot-depth} L${fanX+fanW},${casingBot} Z" fill="#0A1119" stroke="#3D5972" stroke-width="1.2"/>
       <!-- left end-cap (depth side, shadowed) -->
-      <path d="M${filterX-70},${casingTop} L${filterX-70+depth},${casingTop-depth} L${filterX-70+depth},${casingBot-depth} L${filterX-70},${casingBot} Z" fill="#0A1119" stroke="#2E4054" stroke-width="1.2"/>
+      <path d="M${filterX-70},${casingTop} L${filterX-70+depth},${casingTop-depth} L${filterX-70+depth},${casingBot-depth} L${filterX-70},${casingBot} Z" fill="#0A1119" stroke="#3D5972" stroke-width="1.2"/>
       <!-- top face (catches light) -->
-      <path d="M${filterX-70},${casingTop} L${filterX-70+depth},${casingTop-depth} L${fanX+fanW+depth},${casingTop-depth} L${fanX+fanW},${casingTop} Z" fill="url(#topFaceGrad)" stroke="#2E4054" stroke-width="1.2"/>
+      <path d="M${filterX-70},${casingTop} L${filterX-70+depth},${casingTop-depth} L${fanX+fanW+depth},${casingTop-depth} L${fanX+fanW},${casingTop} Z" fill="url(#topFaceGrad)" stroke="#3D5972" stroke-width="1.2"/>
       <!-- front face (main, flat diagram lives on top of this) -->
-      <rect x="${filterX-70}" y="${casingTop}" width="${(fanX+fanW)-(filterX-70)}" height="${casingH}" rx="6" fill="url(#casingGrad)" stroke="#2E4054" stroke-width="1.8"/>
+      <rect x="${filterX-70}" y="${casingTop}" width="${(fanX+fanW)-(filterX-70)}" height="${casingH}" rx="6" fill="url(#casingGrad)" stroke="#3D5972" stroke-width="1.8"/>
       <rect x="${filterX-70}" y="${casingTop}" width="${(fanX+fanW)-(filterX-70)}" height="${casingH}" rx="6" fill="url(#casingSheen)"/>
     </g>
     <!-- top face seam rivets -->
@@ -2188,7 +2188,7 @@ function renderSchematic(){
     <text x="${coil2X+coil2W/2}" y="${casingBot+46}" text-anchor="middle" class="lbl-sm" id="svgCw2LabelF">--</text>
 
     <!-- Fan section -->
-    <circle cx="${fanCx}" cy="${fanCy}" r="${fanR+7}" fill="url(#fanGrad)" stroke="#2E4054" stroke-width="1.5"/>
+    <circle cx="${fanCx}" cy="${fanCy}" r="${fanR+7}" fill="url(#fanGrad)" stroke="#3D5972" stroke-width="1.5"/>
     <circle cx="${fanCx}" cy="${fanCy}" r="${fanR}" fill="#16232E" stroke="#233542" stroke-width="2" id="fanHousing"/>
     <g id="fanBlades" style="color:#3A4E5C;">
       ${Array.from({length:6},(_,i)=>{
