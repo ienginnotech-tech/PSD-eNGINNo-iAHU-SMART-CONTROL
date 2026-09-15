@@ -2070,7 +2070,7 @@ function renderSchematic(){
   window.SCHEMATIC_GEOM = {fanCx, fanCy};
 
   document.getElementById('schematicHost').innerHTML = `
-  <svg viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 1000 580" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <clipPath id="filterClip"><rect x="${filterX}" y="${casingTop}" width="${filterW}" height="${casingH}"/></clipPath>
       <linearGradient id="casingGrad" x1="0" y1="0" x2="0" y2="1">
@@ -2270,6 +2270,46 @@ function renderSchematic(){
     ${callout(90, 150, 11, 'RETURN AIR DUCT W/ INSULATION')}
     ${callout(90, casingBot+30, 12, 'FRESH AIR DUCT W/ VOLUME DAMPER')}
     ${callout(filterX+10, casingBot+10, 13, 'CONDENSATE DRAIN PIPE W/ P-TRAP')}
+
+    <!-- ===== Live Readings panel (from Google Sheet field log) ===== -->
+    <line x1="10" y1="440" x2="990" y2="440" stroke="#233542" stroke-width="1"/>
+    <text x="10" y="460" class="lbl" fill="#7C8DA0" font-size="11" font-weight="700">LIVE READINGS &middot; GOOGLE SHEET</text>
+
+    <!-- CW-1 detail card -->
+    <rect x="10" y="470" width="315" height="98" rx="6" fill="#0F1B24" stroke="#233542" id="lrCw1Box"/>
+    <text x="24" y="490" class="lbl-sm" id="lrCw1Title">CW-1 DETAIL</text>
+    <text x="24" y="510" class="lbl-sm">CHS (Entering)</text>
+    <text x="170" y="510" class="val" font-size="12" id="lrCw1Chs">-- &deg;F</text>
+    <text x="24" y="530" class="lbl-sm">CHR (Leaving)</text>
+    <text x="170" y="530" class="val" font-size="12" id="lrCw1Chr">-- &deg;F</text>
+    <text x="24" y="550" class="lbl-sm">Water Flow</text>
+    <text x="170" y="550" class="val" font-size="12" id="lrCw1Gpm">-- GPM</text>
+    <text x="24" y="562" class="lbl-sm">TR (calc)</text>
+    <text x="170" y="562" class="val" font-size="11" id="lrCw1Tr">-- TR</text>
+
+    <!-- CW-2 detail card -->
+    <rect x="342" y="470" width="315" height="98" rx="6" fill="#0F1B24" stroke="#233542" id="lrCw2Box"/>
+    <text x="356" y="490" class="lbl-sm" id="lrCw2Title">CW-2 DETAIL</text>
+    <text x="356" y="510" class="lbl-sm">CHS (Entering)</text>
+    <text x="502" y="510" class="val" font-size="12" id="lrCw2Chs">-- &deg;F</text>
+    <text x="356" y="530" class="lbl-sm">CHR (Leaving)</text>
+    <text x="502" y="530" class="val" font-size="12" id="lrCw2Chr">-- &deg;F</text>
+    <text x="356" y="550" class="lbl-sm">Water Flow</text>
+    <text x="502" y="550" class="val" font-size="12" id="lrCw2Gpm">-- GPM</text>
+    <text x="356" y="562" class="lbl-sm">TR (calc)</text>
+    <text x="502" y="562" class="val" font-size="11" id="lrCw2Tr">-- TR</text>
+
+    <!-- Environment / Meter / Totals card -->
+    <rect x="674" y="470" width="316" height="98" rx="6" fill="#0F1B24" stroke="#233542"/>
+    <text x="688" y="490" class="lbl-sm">ENVIRONMENT &middot; METER &middot; TOTAL</text>
+    <text x="688" y="508" class="lbl-sm">OA Temp / Humi</text>
+    <text x="850" y="508" class="val" font-size="10.5" id="lrOa">-- &deg;C / -- %RH</text>
+    <text x="688" y="524" class="lbl-sm">Pressure In / Out</text>
+    <text x="850" y="524" class="val" font-size="10.5" id="lrPressure">-- / -- Psig</text>
+    <text x="688" y="540" class="lbl-sm">Meter</text>
+    <text x="850" y="540" class="val" font-size="10.5" id="lrMeter">-- kWh</text>
+    <text x="688" y="556" class="lbl-sm">Total TR / BTU/hr</text>
+    <text x="850" y="556" class="val" font-size="10.5" id="lrTotals">-- TR / -- BTU/hr</text>
   </svg>`;
 }
 
@@ -2277,6 +2317,43 @@ function updateSchematicState(states, activeMode){
   const unitLabel = RUNTIME.monitorUnit || 'AHU-01';
   const ahuTitle = document.getElementById('svgAhuTitle');
   if(ahuTitle) ahuTitle.textContent = `${unitLabel} \u00b7 10,000 CFM`;
+
+  // ===== Live Readings panel =====
+  const greyColor = '#5C7385', activeColor = '#4CD787';
+  const setLR = (id, text, on) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = on ? text : '--';
+    el.setAttribute('fill', on ? activeColor : greyColor);
+  };
+  const cw1TitleEl = document.getElementById('lrCw1Title');
+  if(cw1TitleEl) cw1TitleEl.setAttribute('fill', states.cw1On ? '#7C8DA0' : '#4A5A68');
+  const cw1BoxEl = document.getElementById('lrCw1Box');
+  if(cw1BoxEl) cw1BoxEl.setAttribute('stroke', states.cw1On ? '#35C7E0' : '#233542');
+  setLR('lrCw1Chs', SIM.a1_cw1!=null ? SIM.a1_cw1.toFixed(1)+' °F' : '-- °F', states.cw1On);
+  setLR('lrCw1Chr', SIM.a2_cw1!=null ? SIM.a2_cw1.toFixed(1)+' °F' : '-- °F', states.cw1On);
+  setLR('lrCw1Gpm', SIM.a6_cw1!=null ? SIM.a6_cw1.toFixed(1)+' GPM' : '-- GPM', states.cw1On);
+  setLR('lrCw1Tr', SIM.trCW1!=null ? SIM.trCW1.toFixed(2)+' TR' : '-- TR', states.cw1On);
+
+  const cw2TitleEl = document.getElementById('lrCw2Title');
+  if(cw2TitleEl) cw2TitleEl.setAttribute('fill', states.cw2On ? '#7C8DA0' : '#4A5A68');
+  const cw2BoxEl = document.getElementById('lrCw2Box');
+  if(cw2BoxEl) cw2BoxEl.setAttribute('stroke', states.cw2On ? '#35C7E0' : '#233542');
+  setLR('lrCw2Chs', SIM.a1_cw2!=null ? SIM.a1_cw2.toFixed(1)+' °F' : '-- °F', states.cw2On);
+  setLR('lrCw2Chr', SIM.a2_cw2!=null ? SIM.a2_cw2.toFixed(1)+' °F' : '-- °F', states.cw2On);
+  setLR('lrCw2Gpm', SIM.a6_cw2!=null ? SIM.a6_cw2.toFixed(1)+' GPM' : '-- GPM', states.cw2On);
+  setLR('lrCw2Tr', SIM.trCW2!=null ? SIM.trCW2.toFixed(2)+' TR' : '-- TR', states.cw2On);
+
+  // environment/meter/totals always show when data exists (not tied to a coil's on/off state)
+  const lrOa = document.getElementById('lrOa');
+  if(lrOa) lrOa.textContent = `${SIM.oaTemp!=null ? SIM.oaTemp.toFixed(1) : '--'} °C / ${SIM.oaHumi!=null ? SIM.oaHumi.toFixed(1) : '--'} %RH`;
+  const lrPressure = document.getElementById('lrPressure');
+  if(lrPressure) lrPressure.textContent = `${SIM.a3!=null ? SIM.a3.toFixed(2) : '--'} / ${SIM.a4!=null ? SIM.a4.toFixed(2) : '--'} Psig`;
+  const lrMeter = document.getElementById('lrMeter');
+  if(lrMeter) lrMeter.textContent = `${SIM.meterKwh!=null ? SIM.meterKwh.toFixed(1) : '--'} kWh`;
+  const lrTotals = document.getElementById('lrTotals');
+  if(lrTotals) lrTotals.textContent = `${SIM.totalTR!=null ? SIM.totalTR.toFixed(2) : '--'} TR / ${SIM.totalBTU!=null ? Math.round(SIM.totalBTU).toLocaleString() : '--'} BTU/hr`;
+
   const dateEl = document.getElementById('svgDateLabel');
   const timeEl = document.getElementById('svgTimeLabel');
   if(dateEl && timeEl){
@@ -2634,6 +2711,16 @@ function applySheetData(data, unit, statusEl){
   const roomHumi = num('Room Humidity (%RH)');
   const coilTempCw1 = num('CW-1 Coil temp (°C)');
   const coilTempCw2 = num('CW-2 Coil temp (°C)_supply');
+  const oaTemp = num('Outside Air Temp (°C)');
+  const oaHumi = num('Outside Air humi (%RH)');
+  const meterKwh = num('Meter record(kWh)');
+  const totalBTU = num('Total Actual AHU(BTU/hr)');
+  const totalTR = num('Actual TR Supply(TRp)');
+  SIM.oaTemp = oaTemp;
+  SIM.oaHumi = oaHumi;
+  SIM.meterKwh = meterKwh;
+  SIM.totalBTU = totalBTU;
+  SIM.totalTR = totalTR;
   SIM.coilTempCw1 = coilTempCw1;
   SIM.coilTempCw2 = coilTempCw2;
   SIM.sheetDate = data['Date'] ? String(data['Date']) : null;
