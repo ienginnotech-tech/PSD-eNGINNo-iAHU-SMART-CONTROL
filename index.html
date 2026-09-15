@@ -943,7 +943,7 @@ function defaultRuntime(){
     events:[],
     controlSource:'manual',
     manualMode:'precool',
-    dataSystemMode:'automatic', // 'automatic' = simulated engine (placeholder until real IoT), 'manual' = Google Sheet field log only
+    dataSystemMode:'manual', // Phase 1: Google Sheet field log is the default — no IoT sensors yet, so simulation shouldn't be needed day-to-day. Switch to 'automatic' only for testing/demo.
     monitorUnit:'AHU-01',
     admin:{project:'BITEC BURI', roomTarget:25, roomTol:2, simRate:5, humiditySetpoint:60,
            qSensibleGain:15, qLatentGain:6, roomThermalMass:8, roomAirMass:3600,
@@ -1114,7 +1114,7 @@ async function bootApp(){
     Object.keys(dAdm).forEach(k=>{ if(RUNTIME.admin[k]===undefined) RUNTIME.admin[k]=dAdm[k]; });
   }
   if(RUNTIME.telemetryManual===undefined) RUNTIME.telemetryManual = false;
-  if(!RUNTIME.dataSystemMode) RUNTIME.dataSystemMode = 'automatic';
+  if(!RUNTIME.dataSystemMode) RUNTIME.dataSystemMode = 'manual';
   if(!RUNTIME.monitorUnit) RUNTIME.monitorUnit = RUNTIME.admin.sheetUnit || 'AHU-01';
   if(!RUNTIME.roomLoad) RUNTIME.roomLoad = defaultRuntime().roomLoad;
   if(!RUNTIME.regressionSamples) RUNTIME.regressionSamples = defaultRuntime().regressionSamples;
@@ -2667,11 +2667,23 @@ function applySheetData(data, unit, statusEl){
   RUNTIME.telemetryManual = true;
   setTelemetrySource('manual', true);
   SIM.fieldFrozen = true; // real field reading — hold Room Temp/Humidity/Air Flow/CW Return exactly as measured, don't let the simulation drift them
+
+  // Compute display-facing fields directly here — runSimTick() is what normally derives these,
+  // but it never runs while in Manual Data System Mode (the sim timer is stopped), so without this
+  // the cards would keep showing stale numbers from whatever ran last.
+  if(a5!=null) SIM.airflow = a5;
+  const resolved = resolveActiveStates(SIM.mode);
+  SIM.cw1Ret = coilTempCw1 ?? (a2cw1!=null ? (a2cw1-32)*5/9 : SIM.cw1Ret);
+  SIM.cw2Ret = coilTempCw2 ?? (a2cw2!=null ? (a2cw2-32)*5/9 : SIM.cw2Ret);
+  SIM.cw1Util = resolved.cw1Pct;
+  SIM.cw2Util = resolved.cw2Pct;
+  SIM.cw1ValvePct = resolved.cw1Pct;
+  SIM.cw2ValvePct = resolved.cw2Pct;
+
   recomputeTR();
   updateTelemetry();
   renderDiagnostics();
   renderControlSourceUI();
-  const resolved = resolveActiveStates(SIM.mode);
   paintDashboard(resolved.activeMode, {cw1On:resolved.cw1On, cw2On:resolved.cw2On, fanOn:resolved.fanOn});
 
   if(statusEl){
