@@ -2101,7 +2101,7 @@ function renderSchematic(){
       </linearGradient>
       <style>
         .lbl{font-family:'JetBrains Mono',monospace; font-size:10px; fill:#7C8DA0;}
-        .lbl-sm{font-family:'JetBrains Mono',monospace; font-size:8.5px; fill:#5C7385;}
+        .lbl-sm{font-family:'JetBrains Mono',monospace; font-size:8.5px; fill:#93A6B5;}
         .val{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;}
         .duct{fill:none; stroke:#233542; stroke-width:9; stroke-linecap:round;}
         .thin{fill:none; stroke:#2A3945; stroke-width:1.4;}
@@ -2321,7 +2321,7 @@ function updateSchematicState(states, activeMode){
   if(ahuTitle) ahuTitle.textContent = `${unitLabel} \u00b7 10,000 CFM`;
 
   // ===== Live Readings panel =====
-  const greyColor = '#5C7385', activeColor = '#4CD787';
+  const greyColor = '#93A6B5', activeColor = '#4CD787';
   const setLR = (id, text, on) => {
     const el = document.getElementById(id);
     if(!el) return;
