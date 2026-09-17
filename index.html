@@ -2711,6 +2711,7 @@ function applySheetData(data, unit, statusEl){
   const a5 = num('Air Flow (CFM)');
   const a7 = num('Return Temp (°C)');
   const a8 = num('Fresh Air Temp (°C)');
+  const ecFanSpeed = num('EC Fan Speed(%)') ?? num('EC Fan Speed (%)'); // Column Z — real fan speed logged by the technician
   const roomTemp = num('Room Temp (°C)');
   const roomHumi = num('Room Humidity (%RH)');
   const coilTempCw1 = num('CW-1 Coil temp (°C)');
@@ -2745,6 +2746,7 @@ function applySheetData(data, unit, statusEl){
   if(a5!=null) SIM.a5 = a5;
   if(a7!=null) SIM.a7 = a7;
   if(a8!=null) SIM.a8 = a8;
+  if(ecFanSpeed!=null) SIM.fanSpeedPct = ecFanSpeed; // EC FAN VSD box on the diagram reads SIM.fanSpeedPct directly
   // real field measurements override the simulated Room Temp/Humidity directly — no need to guess via physics
   if(roomTemp!=null){ SIM.roomTemp = roomTemp; SIM.roomW = humidityRatioFromRH(roomTemp, roomHumi ?? SIM.roomHumidity); }
   if(roomHumi!=null) SIM.roomHumidity = roomHumi;
