@@ -6,7 +6,7 @@
 <title>PSD_iAHU SMART CONTROL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <style>
 :root{
   --bg:#0B141C;
@@ -1335,6 +1335,7 @@ async function bootApp(){
   document.getElementById('admDesignTRcw2').value = RUNTIME.admin.designTRcw2 ?? 14.8;
   document.getElementById('admReturnRise').value = RUNTIME.admin.returnLoadRise ?? 4;
   document.getElementById('admSheetApiUrl').value = RUNTIME.admin.sheetApiUrl ?? '';
+  try{ p3InjectModeSwitch(); p3SetMode(p3StoredMode()); }catch(e){ console.error('3D init failed', e); }
 
   renderDayPicker();
   renderParamCards();
@@ -1352,8 +1353,8 @@ async function bootApp(){
   setTelemetrySource(RUNTIME.telemetryManual ? 'manual' : 'auto');
   applyDataSystemModeUI();
   applyMonitorUnitUI();
-  runSimTick(); // initial paint
-  renderReports();
+  try{ runSimTick(); }catch(e){ console.error('initial paint failed', e); }
+  try{ if(typeof Chart!=='undefined') renderReports(); }catch(e){ console.error('reports failed', e); }
 
   clearInterval(simTimer);
   clearInterval(saveTimer);
@@ -1361,8 +1362,6 @@ async function bootApp(){
     simTimer = setInterval(runSimTick, 3000);
   }
   saveTimer = setInterval(persistRuntime, 15000);
-  p3InjectModeSwitch();
-  p3SetMode(p3StoredMode());
 }
 
 /* ================= DATA SYSTEM MODE (Manual field log vs Automatic simulation) ================= */
@@ -1419,7 +1418,7 @@ function switchScreen(name){
   ['dashboard','params','schedule','reports','admin'].forEach(s=>{
     document.getElementById('screen-'+s).classList.toggle('hidden', s!==name);
   });
-  if(name==='reports') renderReports();
+  if(name==='reports' && typeof Chart!=='undefined') renderReports();
 }
 
 /* ================= CONTROL SOURCE ================= */
@@ -3108,7 +3107,11 @@ const P3 = { ready:false, loading:null, on:false, raf:0, units:new Map(), pick:[
 
 /* ---------- โหมด 3D / หลังบ้าน ---------- */
 function p3LoadScript(src){ return new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>no(new Error('โหลดไม่ได้: '+src)); document.head.appendChild(s); }); }
-async function p3LoadLibs(){ if(window.THREE && THREE.OrbitControls) return; if(!P3.loading) P3.loading=(async()=>{ if(!window.THREE) await p3LoadScript(P3_LIBS[0]); if(!THREE.OrbitControls) await p3LoadScript(P3_LIBS[1]); })(); return P3.loading; }
+async function p3LoadAny(urls){ let err; for(const u of urls){ try{ await p3LoadScript(u); return; }catch(e){ err=e; } } throw err; }
+async function p3LoadLibs(){ if(window.THREE && THREE.OrbitControls) return; if(!P3.loading) P3.loading=(async()=>{
+  if(!window.THREE) await p3LoadAny([P3_LIBS[0], 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js', 'https://unpkg.com/three@0.128.0/build/three.min.js']);
+  if(!THREE.OrbitControls) await p3LoadAny([P3_LIBS[1], 'https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js']);
+})().catch(e=>{ P3.loading=null; throw e; }); return P3.loading; }
 function p3SetMode(m){
   const is3d = m==='3d';
   document.body.classList.toggle('mode3d', is3d);
